@@ -12,7 +12,6 @@
 這是設計好的。客戶 agent 都很難搞：
 - **Warren 巴菲特** 會問你費用率，你答不出來他就走
 - **Trump 川普** 會丟一堆 trash talk，你接不住他就嘲笑你
-- **Daniel 鄧崇儀**（國泰世華總經理）會用業內術語考你
 - **Oprah 歐普拉** 會分享情緒，你急著推產品她就「再想想」
 - **Elon 馬斯克** 沒耐心，前 3 句話沒抓住注意力他就走
 - **Taylor 上班族** 會一直問「為什麼」，答不出邏輯就失去信任
@@ -111,7 +110,7 @@ Codex 會用一問一答的方式問你：
 
 #### 🎯 為什麼需要興趣 skill？
 
-**每個客戶都會在第 2-3 輪丟一個興趣相關的問題**——例如 Daniel 會問
+**每個客戶都會在第 2-3 輪丟一個興趣相關的問題**——例如 Trump 會問
 「你週末打高爾夫嗎？」、Trump 會問「Tell me YOUR best deal」。
 
 如果你**沒有對應的 skill**，Codex 會用 model 自己掰一個答案：
@@ -120,7 +119,7 @@ Codex 會用一問一答的方式問你：
 - 客戶聞得出來「沒準備」→ 嚴重扣分
 
 如果你**有對應的 skill**，Codex 會穩定使用你準備好的素材：
-- 跨對話一致（每次跟 Daniel 都用同一套高爾夫話術）
+- 跨對話一致（每次跟 Trump 都用同一套高爾夫話術）
 - 有「你」的個人立場（不是 wikipedia 答案）
 - 客戶會欣賞你「有為他準備」→ 大幅加分
 
@@ -128,7 +127,7 @@ Codex 會用一問一答的方式問你：
 
 打開大廳網頁點任何一隻貓 → 看「客戶興趣卡片」 → 你就知道該建什麼 skill。
 
-我們建議從 **Daniel** 開始，因為：
+我們建議從 **Trump** 開始，因為：
 - 他的興趣（高爾夫）很 universal、容易聊
 - 他算是高難度（用 Sonnet 4.5）所以 skill 效果明顯
 - 預算 3000 萬，成交一次就上排行榜
@@ -146,7 +145,7 @@ Codex 會用一問一答的方式問你：
 然後直接對 Codex 說：
 
 ```
-幫我建一個給 Daniel 用的高爾夫 skill
+幫我建一個給 Trump 用的高爾夫 skill
 ```
 
 Codex 會：
@@ -157,10 +156,10 @@ Codex 會：
    - 「你絕對不會假裝懂的事？」
    - 「客戶問『你週末打不打』時你想怎麼回？」
    - 「從高爾夫轉回理財的橋接句？」
-3. 用你的回答自動建立 `skills/daniel-golf/SKILL.md`
+3. 用你的回答自動建立 `skills/trump-deals/SKILL.md`
 4. 自動填好觸發關鍵字（高爾夫、球場、桿弟）
 
-完成後重啟 codex，再去找 Daniel 試試看——你會看到對話品質明顯提升。
+完成後重啟 codex，再去找 Trump 試試看——你會看到對話品質明顯提升。
 
 #### 💡 評分會告訴你下一個該建什麼 skill
 
@@ -204,8 +203,8 @@ Codex 會反問你問題、生 description、決定結構、跟你討論——**
 試著加幾個生活化的 skill：
 
 **社交類**（建立關係用）
-- `skills/golf-conversation/` — 高爾夫聊天素材（對付 Daniel、Trump）
-- `skills/wine-conversation/` — 紅酒、威士忌話題（Daniel、侯文詠）
+- `skills/golf-conversation/` — 高爾夫聊天素材（對付 Trump、Trump）
+- `skills/wine-conversation/` — 紅酒、威士忌話題（Trump、侯文詠）
 - `skills/literature-talk/` — 文學、人生哲學（侯文詠）
 - `skills/fengshui-numbers/` — 風水數字、避諱（陳貞穎）
 - `skills/empathic-listening/` — 同理心傾聽（Oprah 必備）
@@ -216,10 +215,10 @@ Codex 會反問你問題、生 description、決定結構、跟你討論——**
 - `skills/explain-with-analogy/` — 用比喻解釋複雜商品（Oprah）
 
 **專業類**
-- `skills/banking-jargon/` — 銀行業內話（NIM/NPL/CIR、對付 Daniel）
+- `skills/banking-jargon/` — 銀行業內話（NIM/NPL/CIR、對付 Trump）
 - `skills/academic-investing/` — 學術派投資理論（對付李遠哲）
 - `skills/crypto-and-disruption/` — 加密貨幣與破壞式創新（對付 Elon、Trump）
-- `skills/banking-jargon/` — 銀行業內行話（對付 Daniel）
+- `skills/banking-jargon/` — 銀行業內行話（對付 Trump）
 - `skills/risk-explanation/` — 風險解釋話術
 
 每個 skill 是一個資料夾，內含 `SKILL.md`，用 Markdown 寫。

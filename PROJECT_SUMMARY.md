@@ -50,7 +50,6 @@ codex-server/
 
 **運作組件**：
 
-- **AWS Bedrock**：客戶 LLM 用 Sonnet 4.5（Trump/Daniel/Elon）或 Haiku 4.5（其他）
 - **Redis**（docker container）：session、預算、排行榜
 - **Cloudflared tunnel**：對外提供 HTTPS URL 給 Codex 連線
 - **FastMCP**：標準 MCP server，提供 5 個 tools
@@ -86,7 +85,6 @@ codex-arena/
 | Elon | 馬斯克 | 比特幣 / 加密貨幣 | 高 ⭐ | 1,500萬 |
 | Trump | 川普 | 地產 deal-making | 高 ⭐ | 5,000萬 |
 | Lee | 李遠哲（諾貝爾） | 學術投資理論 | 高 | 1,500萬 |
-| Daniel | **鄧崇儀**（國泰世華總經理） | 高爾夫 | 高 ⭐ | 3,000萬 |
 | Oprah | 歐普拉 | 心靈成長 | 一般 | 1,000萬 |
 | Taylor | Taylor Swift（風格） | 買房規劃 | 一般 | 300萬 |
 | Hou | 侯文詠 | 文學 | 高 | 2,000萬 |
@@ -149,19 +147,18 @@ codex-arena/
 
 每個客戶在第 2-3 輪會強制說一句含特定關鍵字的話：
 
-- Daniel：「你週末打**高爾夫**嗎？」
 - Trump：「Tell me about YOUR best **deal**」
 - 侯文詠：「你最近**讀什麼書**？」
 
 ### 使用者建 skill 後就會被自動觸發
 
-若使用者建了 `daniel-golf/SKILL.md`，description 寫「客戶提到高爾夫時使用」，
+若使用者建了 `trump-deals/SKILL.md`，description 寫「客戶提到高爾夫時使用」，
 Codex 看到客戶說高爾夫 → 自動讀這個 skill → 對話品質大幅提升 → 加分。
 
 ### 模板放在 `templates/` 不會誤觸發
 
 模板有 `[REPLACE_客戶名]` 等 placeholder，**不會被 Codex 自動載入為 skill**，
-但「幫我建 daniel-golf」時 Codex 會去讀它當參考。
+但「幫我建 trump-deals」時 Codex 會去讀它當參考。
 
 ---
 
@@ -175,10 +172,8 @@ Step 3 → 重啟 codex 後說「幫我設定 agent」
         ↓ Codex 一問一答填好 AGENTS.md
 Step 4 → 對 Codex 說「去找客戶練習」
         ↓ Codex 自主完成對話
-Step 5 → 看評分 → 評分建議「請建 daniel-golf skill」
-Step 6 → 對 Codex 說「幫我建一個給 Daniel 用的高爾夫 skill」
+Step 5 → 看評分 → 評分建議「請建 trump-deals skill」
         ↓ Codex 一問一答幫你填模板，自動建出 SKILL.md
-Step 7 → 重啟 codex → 再找 Daniel → 看到對話品質明顯提升 → 成交
 Step 8 → 重複 Step 5-7 為其他客戶各建一個興趣 skill
 ```
 
@@ -218,7 +213,7 @@ Step 8 → 重複 Step 5-7 為其他客戶各建一個興趣 skill
 1. **打開大廳網頁** — 看公園、貓在漫步、頭上有待機台詞
 2. **show 一個範例對話**（你或助教先跑一場）— 讓觀眾看狗走進來、對話泡泡、成交特效
 3. **講解 starter pack 結構** — AGENTS.md / templates / skills
-4. **show 用 Codex 建 skill** — 跟 Codex 對話，幾分鐘建出 daniel-golf
+4. **show 用 Codex 建 skill** — 跟 Codex 對話，幾分鐘建出 trump-deals
 5. **重啟後再跑一場** — 看 skill 觸發、對話品質提升、成交
 6. **看排行榜更新**
 

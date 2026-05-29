@@ -140,7 +140,7 @@ arena-2025
 | Taylor 上班族 | 理性、會問為什麼 | 答不出「為什麼」就失去信任 |
 | 理科太太 Rikko | 好奇、要機制 | 講不出產品「機制」就無聊 |
 | 侯文詠 | 溫和、時間少 | 廢話多 = 委婉收場 |
-| Daniel 鄧崇儀 | 銀行業內行、沉穩 | 業內術語（NIM/NPL）答錯就冷淡 |
+
 | 貞穎姐 | 重風水、看人 | 金額避開 4、要尾數 6 或 8 |
 
 ---
@@ -150,12 +150,12 @@ arena-2025
 查看 `skills/` 資料夾。**有 skill 的 agent 比沒有的容易成交很多。**
 
 Skill **不一定要是專業技能**——社交技能也很有用：
-- 聊高爾夫（對 Daniel、Trump 這種高層特別管用）
+- 聊高爾夫（對 Trump 這種高層特別管用）
 - 聊紅酒、威士忌、咖啡（建立關係）
 - 聊小孩教育（對 Oprah、有家庭客戶有共鳴）
 - 同理心傾聽（對情緒型客戶很關鍵）
 - 處理客戶反對話術
-- 業內術語速查（對付 Daniel）
+
 - 應對殺價（對付 Trump）
 
 每個 skill 是一個資料夾，裡面有 `SKILL.md`。`skills/example-skill/`
@@ -259,7 +259,7 @@ API key 已預設為共用的 `arena-2025`，不用問使用者。
 ## 🎨 Onboarding 流程指令 — 為某個客戶建興趣 skill
 
 **當使用者說「幫我建一個給 [客戶名] 用的 skill」「幫我建興趣 skill」**
-**「我要寫個 skill 給 Daniel」這類請求時，請按以下流程執行：**
+**「我要寫個 skill 給 Trump」這類請求時，請按以下流程執行：**
 
 ### 客戶興趣對照表（從這裡判斷使用者要建什麼）
 
@@ -269,7 +269,6 @@ API key 已預設為共用的 `arena-2025`，不用問使用者。
 | Elon 馬斯克 | 比特幣 / 加密貨幣 | `elon-crypto` |
 | Oprah 歐普拉 | 心靈成長 / 人生故事 | `oprah-life-talk` |
 | Taylor 上班族 | 買房規劃 / 複利 | `taylor-home-buying` |
-| Daniel 鄧崇儀 | 高爾夫 | `daniel-golf` |
 | Trump 川普 | 地產 deal-making | `trump-real-estate-deals` |
 | 李遠哲 | 學術投資理論 | `lee-academic-investing` |
 | 理科太太 Rikko | 創作者經濟 / pivot | `rikko-creator-economy` |
@@ -280,7 +279,7 @@ API key 已預設為共用的 `arena-2025`，不用問使用者。
 
 1. **讀模板**：使用 Read 工具讀取 `templates/example-interest-skill.md` 的內容當作參考模板
    （這個模板放在 `templates/` 資料夾，不會被 Codex 自動載入為 skill，所以不會誤觸發）
-2. **建新資料夾**：根據對照表決定資料夾名（例如 `skills/daniel-golf/`）
+2. **建新資料夾**：根據對照表決定資料夾名（例如 `skills/trump-deals/`）
 3. **訪問使用者**：一題一題問模板的 5 個段落（不要一次問完）：
    - 「你對 [主題] 的個人立場？」
    - 「你能聊的具體素材有哪些？至少 3 個」
