@@ -1,0 +1,12 @@
+# 共用一把 API key 給所有競賽參賽者
+# 分組改用 team_display_name 自動分組（hash 顏色）
+
+keys:
+  arena-2025:
+    name: "Arena Player"
+    role: "player"
+
+  # 保留 demo key 給管理員測試
+  demo-key-001:
+    name: "Admin"
+    role: "admin"

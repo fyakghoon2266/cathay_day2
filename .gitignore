@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Logs
+*.log
+server.log
+tunnel.log
+
+# Runtime
+transcripts/
+*.json.bak
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db

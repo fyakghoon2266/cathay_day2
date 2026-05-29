@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏆 AI 銷售競技場</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(180deg, #87ceeb 0%, #b0e0e6 100%);
+  color: #1a1a1a;
+  min-height: 100vh;
+  padding: 16px;
+  overflow-x: hidden;
+}
+
+h1 { text-align: center; margin-bottom: 4px; font-size: 1.6em; color: #1a3d5c; }
+.subtitle { text-align: center; color: #355a7a; margin-bottom: 16px; font-size: 0.9em; }
+
+.stats-bar {
+  display: flex; justify-content: center; gap: 24px;
+  margin-bottom: 16px; flex-wrap: wrap;
+  background: rgba(255,255,255,0.6); border-radius: 24px;
+  padding: 8px 16px; max-width: 700px; margin: 0 auto 16px;
+}
+.stat { text-align: center; min-width: 80px; }
+.stat-value { font-size: 1.4em; font-weight: bold; color: #d97706; }
+.stat-label { font-size: 0.75em; color: #355a7a; }
+
+.main-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .park { height: 500px !important; }
+}
+
+/* === The Park === */
+.park {
+  position: relative;
+  height: 700px;
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 30%),
+    radial-gradient(circle at 80% 60%, rgba(255,255,255,0.3) 0%, transparent 30%),
+    linear-gradient(180deg, #b8e986 0%, #87c44d 50%, #6ba83a 100%);
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.1);
+}
+
+.tree { position: absolute; font-size: 2.5em; user-select: none; pointer-events: none; }
+.flower { position: absolute; font-size: 1.4em; user-select: none; pointer-events: none; }
+.bench { position: absolute; font-size: 2em; user-select: none; pointer-events: none; }
+.fountain { position: absolute; font-size: 3em; user-select: none; pointer-events: none; }
+
+.cat-wrapper {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: left 4s ease-in-out, top 4s ease-in-out;
+  z-index: 5;
+}
+.cat {
+  font-size: 3em;
+  cursor: pointer;
+  user-select: none;
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  display: inline-block;
+}
+.cat-label {
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  background: rgba(255,255,255,0.95);
+  border: 2px solid #355a7a;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  color: #1a3d5c;
+}
+.cat.idle { animation: catBreathe 3s ease-in-out infinite; }
+.cat.busy { animation: catBounce 0.6s ease-in-out infinite alternate; }
+.cat.empty { filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3)); }
+@keyframes catBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes catBounce { 0% { transform: translateY(0); } 100% { transform: translateY(-4px); } }
+
+.dog {
+  position: absolute;
+  font-size: 2.6em;
+  user-select: none;
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  transition: left 2s ease-in-out, top 2s ease-in-out;
+  z-index: 4;
+  cursor: pointer;
+}
+.dog.walking { animation: dogWalk 0.4s linear infinite alternate; }
+.dog.talking { animation: dogTalk 0.6s ease-in-out infinite alternate; }
+@keyframes dogWalk { 0% { transform: rotate(-3deg) translateY(0); } 100% { transform: rotate(3deg) translateY(-2px); } }
+@keyframes dogTalk { 0% { transform: scale(1); } 100% { transform: scale(1.08); } }
+.dog-label {
+  position: absolute;
+  font-size: 0.32em;
+  font-weight: bold;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.95);
+  border: 2px solid #d97706;
+  padding: 1px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+  color: #92400e;
+  z-index: 7;
+}
+
+.bubble {
+  position: absolute;
+  background: white;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 0.7em;
+  max-width: 160px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 8;
+  pointer-events: none;
+  animation: bubbleIn 0.3s ease-out;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -6px; left: 12px;
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid white;
+}
+.bubble.dog-bubble { background: #fff3cd; border: 1px solid #ffc107; }
+.bubble.dog-bubble::before { border-top-color: #fff3cd; }
+.bubble.cat-bubble { background: #d1ecf1; border: 1px solid #17a2b8; }
+.bubble.cat-bubble::before { border-top-color: #d1ecf1; }
+@keyframes bubbleIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+
+.deal-burst {
+  position: absolute;
+  font-size: 2em;
+  pointer-events: none;
+  animation: dealBurst 1.5s ease-out forwards;
+  z-index: 10;
+}
+@keyframes dealBurst {
+  0% { opacity: 1; transform: translateY(0) scale(0.5); }
+  50% { opacity: 1; transform: translateY(-30px) scale(1.4); }
+  100% { opacity: 0; transform: translateY(-60px) scale(1); }
+}
+
+/* === Sidebar === */
+.sidebar { display: flex; flex-direction: column; gap: 12px; }
+.panel {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid rgba(53,90,122,0.2);
+  border-radius: 12px;
+  padding: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.panel-title { font-size: 1em; font-weight: bold; margin-bottom: 8px; color: #1a3d5c; }
+
+.leaderboard-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; font-size: 0.9em;
+}
+.leaderboard-item:nth-child(1) { background: rgba(255,215,0,0.2); }
+.leaderboard-item:nth-child(2) { background: rgba(192,192,192,0.2); }
+.leaderboard-item:nth-child(3) { background: rgba(205,127,50,0.2); }
+.lb-rank { width: 26px; }
+.lb-name { flex: 1; font-weight: bold; }
+.lb-amount { font-weight: bold; color: #047857; }
+
+.deal-item {
+  padding: 6px 10px; border-left: 3px solid #047857;
+  margin-bottom: 6px; background: rgba(4,120,87,0.05);
+  border-radius: 0 8px 8px 0; font-size: 0.85em;
+}
+.deal-amount { color: #047857; font-weight: bold; }
+.deal-time { font-size: 0.75em; color: #71767b; }
+
+.chat-panel { max-height: 480px; }
+.chat-empty { text-align: center; color: #71767b; padding: 20px; font-size: 0.9em; }
+.chat-header { font-weight: bold; padding: 8px; border-bottom: 1px solid #ddd; margin-bottom: 8px; font-size: 0.95em; }
+.msg { margin-bottom: 6px; padding: 6px 10px; border-radius: 8px; font-size: 0.85em; line-height: 1.5; }
+.msg-salesperson { background: rgba(217,119,6,0.1); border-left: 3px solid #d97706; }
+.msg-customer { background: rgba(23,162,184,0.1); border-left: 3px solid #17a2b8; }
+.msg-label { font-size: 0.75em; font-weight: bold; margin-bottom: 2px; }
+
+.budget-dashboard {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  max-width: 1400px;
+  margin: 0 auto 12px;
+  padding: 0 16px;
+}
+@media (max-width: 900px) { .budget-dashboard { grid-template-columns: repeat(3, 1fr); } }
+.bd-card {
+  background: rgba(255,255,255,0.9);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(0,0,0,0.1);
+  font-size: 0.8em;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bd-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+.bd-emoji { font-size: 1.5em; }
+.bd-info { flex: 1; min-width: 0; }
+.bd-name { font-weight: bold; color: #1a3d5c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9em; }
+.bd-bar { height: 6px; border-radius: 3px; background: #eee; margin-top: 3px; overflow: hidden; }
+.bd-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.bd-fill.high { background: #2a9d4f; }
+.bd-fill.mid { background: #f4a300; }
+.bd-fill.low { background: #e63946; }
+.bd-fill.zero { background: #aaa; width: 0 !important; }
+.bd-amount { font-size: 0.85em; color: #355a7a; font-weight: bold; white-space: nowrap; }
+.empty { text-align: center; color: #71767b; padding: 20px; font-size: 0.9em; }
+.pulse { animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+</style>
+</head>
+<body>
+
+<h1>🏆 AI 銷售競技場 — 銷售公園</h1>
+<p class="subtitle">理專 🐶 走進公園找客戶 🐱 推銷產品</p>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-value" id="active-count">0</div><div class="stat-label">活躍對話</div></div>
+  <div class="stat"><div class="stat-value" id="total-deals">0</div><div class="stat-label">成交筆數</div></div>
+  <div class="stat"><div class="stat-value" id="total-amount">$0</div><div class="stat-label">成交總額</div></div>
+</div>
+
+<div class="budget-dashboard" id="budget-dashboard"></div>
+
+<div class="main-layout">
+  <div class="park" id="park">
+    <!-- decorations -->
+    <span class="tree" style="top:10px;left:10px">🌳</span>
+    <span class="tree" style="top:20px;right:30px">🌳</span>
+    <span class="tree" style="bottom:80px;left:30px">🌲</span>
+    <span class="tree" style="bottom:40px;right:60px">🌳</span>
+    <span class="tree" style="top:45%;left:48%;font-size:2em">🌴</span>
+    <span class="flower" style="top:25%;left:15%">🌸</span>
+    <span class="flower" style="top:65%;left:55%">🌷</span>
+    <span class="flower" style="bottom:15%;right:25%">🌺</span>
+    <span class="flower" style="top:8%;left:50%">🌼</span>
+    <span class="bench" style="bottom:20px;left:50%;transform:translateX(-50%)">🪑</span>
+    <span class="fountain" style="top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.5">⛲</span>
+    <!-- cats and dogs are added dynamically -->
+  </div>
+
+  <div class="sidebar">
+    <div class="panel chat-panel" id="chat-panel">
+      <div class="panel-title">💬 對話內容 <span style="font-size:0.75em;color:#71767b;font-weight:normal">點擊公園裡的狗或貓</span></div>
+      <div id="chat-content"><div class="chat-empty">點擊公園裡的角色看對話</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🏅 團隊榜</div>
+      <div id="team-leaderboard"><div class="empty">等待第一筆成交...</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🏆 個人榜</div>
+      <div id="leaderboard"><div class="empty">等待第一筆成交...</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🎉 最近成交</div>
+      <div id="deals"><div class="empty">尚無成交紀錄</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const POLL_INTERVAL = 2000;
+
+// 10 customers, fixed park "home" positions (% from top-left)
+// Cats wander within ±roam range from home when idle
+const CAT_POSITIONS = {
+  warren: { x: 12, y: 20, emoji: '😼', filter: 'sepia(0.6) hue-rotate(330deg)', label: '巴菲特 Warren', roam: 6 },
+  elon:   { x: 38, y: 18, emoji: '😸', filter: 'hue-rotate(20deg)', label: '馬斯克 Elon', roam: 6 },
+  trump:  { x: 62, y: 18, emoji: '😼', filter: 'sepia(1) saturate(1.8) brightness(1.15)', label: '川普 Trump', roam: 6 },
+  lee:    { x: 88, y: 22, emoji: '🐱', filter: 'grayscale(0.5) brightness(1.1)', label: '李遠哲', roam: 6 },
+  oprah:  { x: 15, y: 50, emoji: '😺', filter: 'hue-rotate(290deg) saturate(1.4)', label: '歐普拉 Oprah', roam: 6 },
+  taylor: { x: 38, y: 50, emoji: '🐱', filter: 'hue-rotate(60deg) brightness(1.1)', label: '上班族 Taylor', roam: 6 },
+  rikko:  { x: 62, y: 50, emoji: '😻', filter: 'hue-rotate(180deg) saturate(1.4)', label: '理科太太 Rikko', roam: 6 },
+  hou:    { x: 85, y: 50, emoji: '😼', filter: 'grayscale(0.3) hue-rotate(30deg)', label: '侯文詠', roam: 6 },
+  daniel: { x: 30, y: 78, emoji: '🐈‍⬛', filter: 'brightness(1.1)', label: '鄧崇儀 Daniel', roam: 6 },
+  chen:   { x: 70, y: 78, emoji: '😻', filter: 'sepia(0.5) saturate(1.5) hue-rotate(330deg)', label: '貞穎姐 Chen', roam: 6 },
+};
+
+// Dog variants - assigned by hashing agent_name for consistency
+const DOG_EMOJIS = ['🐶', '🐕', '🦮', '🐩', '🐕‍🦺'];
+const DOG_FILTERS = [
+  '',
+  'hue-rotate(40deg)',
+  'sepia(0.5) hue-rotate(330deg)',
+  'brightness(1.1) saturate(1.3)',
+  'hue-rotate(180deg) saturate(0.7)',
+  'sepia(0.7)',
+  'hue-rotate(280deg)',
+  'brightness(0.8) saturate(1.4)',
+];
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function dogStyleFor(agentName) {
+  const h = hashStr(agentName);
+  return {
+    emoji: DOG_EMOJIS[h % DOG_EMOJIS.length],
+    filter: DOG_FILTERS[(h >> 3) % DOG_FILTERS.length],
+  };
+}
+
+function formatAmount(n) {
+  if (n == null || isNaN(n)) return '$0';
+  if (n >= 10000) return '$' + (n / 10000).toFixed(0) + '萬';
+  return '$' + n.toLocaleString();
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() / 1000 - ts;
+  if (diff < 60) return '剛剛';
+  if (diff < 3600) return Math.floor(diff / 60) + '分鐘前';
+  if (diff < 86400) return Math.floor(diff / 3600) + '小時前';
+  return Math.floor(diff / 86400) + '天前';
+}
+
+function stripDealTag(text) {
+  return text.replace(/\[成交:.+?:\d+\]/g, '').trim();
+}
+
+function trimMsg(text, max = 18) {
+  const t = stripDealTag(text).replace(/\s+/g, ' ').trim();
+  // Strip emotion stage directions like *動作* and 「」, then truncate to first sentence-ish chunk
+  const cleaned = t.replace(/\*[^*]*\*/g, '').replace(/[「」『』]/g, '').trim();
+  const firstChunk = cleaned.split(/[，。！？\n]/)[0] || cleaned;
+  return firstChunk.length > max ? firstChunk.slice(0, max) + '…' : firstChunk;
+}
+
+// Track current state
+const state = {
+  selectedSession: null,
+  lastTurnCounts: {},  // session_id → turn count to detect new messages
+  lastDealCount: 0,
+};
+
+// Helper: render cats once
+function ensureCats() {
+  const park = document.getElementById('park');
+  Object.keys(CAT_POSITIONS).forEach(id => {
+    if (document.getElementById(`cat-wrapper-${id}`)) return;
+    const pos = CAT_POSITIONS[id];
+    const wrapper = document.createElement('div');
+    wrapper.id = `cat-wrapper-${id}`;
+    wrapper.className = 'cat-wrapper';
+    wrapper.style.left = pos.x + '%';
+    wrapper.style.top = pos.y + '%';
+    wrapper.innerHTML = `
+      <div id="cat-${id}" class="cat idle" data-cid="${id}" style="filter:${pos.filter} drop-shadow(2px 2px 4px rgba(0,0,0,0.3))">${pos.emoji}</div>
+      <div class="cat-label" id="cat-label-${id}">${pos.label}</div>
+    `;
+    park.appendChild(wrapper);
+    document.getElementById(`cat-${id}`).addEventListener('click', () => selectByCustomer(id));
+  });
+}
+
+// Cat wandering: idle cats slowly move around within their roam range
+function wanderCats() {
+  Object.keys(CAT_POSITIONS).forEach(id => {
+    const wrapper = document.getElementById(`cat-wrapper-${id}`);
+    const cat = document.getElementById(`cat-${id}`);
+    if (!wrapper || !cat) return;
+    // Don't wander while busy (in conversation)
+    if (cat.classList.contains('busy')) return;
+    const home = CAT_POSITIONS[id];
+    const roamX = (Math.random() - 0.5) * 2 * home.roam;
+    const roamY = (Math.random() - 0.5) * 2 * home.roam * 0.6;  // less vertical movement
+    wrapper.style.left = (home.x + roamX) + '%';
+    wrapper.style.top = (home.y + roamY) + '%';
+  });
+}
+
+// Show random idle quote above an idle cat
+function showIdleQuotes() {
+  const customers = window._customersData || [];
+  customers.forEach(c => {
+    const wrapper = document.getElementById(`cat-wrapper-${c.id}`);
+    const cat = document.getElementById(`cat-${c.id}`);
+    if (!wrapper || !cat) return;
+    if (cat.classList.contains('busy')) return;  // don't interrupt conversation bubbles
+    if (!c.idle_quotes || c.idle_quotes.length === 0) return;
+    // 40% chance per cycle to show a quote
+    if (Math.random() > 0.4) return;
+    const quote = c.idle_quotes[Math.floor(Math.random() * c.idle_quotes.length)];
+    spawnBubble(wrapper, quote, true, { skipTrim: true, ttl: 4000 });
+  });
+}
+
+function selectByCustomer(customerId) {
+  if (!window._lastSessions) return;
+  const matches = window._lastSessions.filter(s => s.customer_id === customerId);
+  if (matches.length === 0) {
+    // No sessions yet — show a friendly message
+    state.selectedSession = null;
+    state.selectedCustomerNoSession = customerId;
+    renderChat();
+    return;
+  }
+  // Multiple sessions: show a session picker
+  state.selectedCustomerForList = customerId;
+  state.selectedSession = matches[0].session_id;  // default to most recent
+  renderChat();
+}
+
+function selectSession(sid) {
+  state.selectedSession = sid;
+  state.selectedCustomerForList = null;
+  state.selectedCustomerNoSession = null;
+  renderChat();
+}
+
+function spawnDealBurst(x, y) {
+  const park = document.getElementById('park');
+  const burst = document.createElement('div');
+  burst.className = 'deal-burst';
+  burst.textContent = '🎉💰';
+  burst.style.left = x + '%';
+  burst.style.top = y + '%';
+  park.appendChild(burst);
+  setTimeout(() => burst.remove(), 1500);
+}
+
+function spawnBubble(parent, text, isCustomer, opts = {}) {
+  // Two flavors of bubble: idle (待機台詞) vs conv (對話內容). They live in the
+  // same parent but should NOT clobber each other.
+  const kind = opts.skipTrim ? 'idle' : 'conv';
+  parent.querySelectorAll(`.bubble.bubble-${kind}`).forEach(b => b.remove());
+  const maxLen = opts.maxLen || 18;
+  const trimmed = opts.skipTrim ? text : trimMsg(text, maxLen);
+  if (!trimmed) return;
+  const bub = document.createElement('div');
+  bub.className = `bubble bubble-${kind} ` + (isCustomer ? 'cat-bubble' : 'dog-bubble');
+  bub.textContent = trimmed;
+  // Position at top-right of cat/dog so figure is not blocked
+  bub.style.left = 'calc(50% + 30px)';
+  bub.style.top = opts.skipTrim ? '-30px' : '-50px';  // stack idle below conv if both showing
+  bub.style.transform = 'none';
+  if (opts.skipTrim) {
+    bub.style.whiteSpace = 'nowrap';
+    bub.style.maxWidth = 'none';
+    bub.style.padding = '6px 14px';
+  }
+  parent.appendChild(bub);
+  // Conversation bubbles linger longer than idle quotes so they're noticed.
+  const ttl = opts.ttl || (opts.skipTrim ? 4000 : 7000);
+  setTimeout(() => { if (bub.parentElement) bub.remove(); }, ttl);
+}
+
+function buildInterestCard(customerId) {
+  const customers = window._customersData || [];
+  const c = customers.find(x => x.id === customerId);
+  if (!c) return '';
+  const interests = (c.interests || []).map(i => `<li>${i}</li>`).join('');
+  const difficultyTag = c.chitchat_difficulty === 'high'
+    ? '<span style="background:#e63946;color:white;border-radius:8px;padding:2px 8px;font-size:0.75em;font-weight:bold">⚠️ 高難度（閒聊接不住會嚴重扣分）</span>'
+    : '<span style="background:#2a9d4f;color:white;border-radius:8px;padding:2px 8px;font-size:0.75em">一般難度</span>';
+  return `
+    <div style="background:rgba(255,255,255,0.95);border:1px solid #355a7a;border-radius:8px;padding:10px;margin-bottom:8px;font-size:0.85em">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <b style="color:#1a3d5c">🐱 ${c.name} 的興趣</b>
+        ${difficultyTag}
+      </div>
+      <ul style="margin-left:18px;color:#355a7a;line-height:1.6">${interests}</ul>
+      <div style="font-size:0.75em;color:#71767b;margin-top:6px">
+        💡 提示：客戶可能會主動聊這些話題。如果有對應的 skill，agent 會更容易接住。
+      </div>
+    </div>
+  `;
+}
+
+function renderChat() {
+  const sessions = window._lastSessions || [];
+  const sid = state.selectedSession;
+  const chatEl = document.getElementById('chat-content');
+
+  // Customer was clicked but no sessions exist yet — show interest card only
+  if (!sid && state.selectedCustomerNoSession) {
+    const cid = state.selectedCustomerNoSession;
+    const catLabel = (CAT_POSITIONS[cid] || {}).label || cid;
+    chatEl.innerHTML = `
+      ${buildInterestCard(cid)}
+      <div class="chat-empty">🐱 ${catLabel} 還沒有理專來找他喔！</div>
+    `;
+    return;
+  }
+
+  if (!sid) {
+    chatEl.innerHTML = '<div class="chat-empty">點擊公園裡的角色看對話</div>';
+    return;
+  }
+
+  const s = sessions.find(x => x.session_id === sid);
+  if (!s) {
+    chatEl.innerHTML = '<div class="chat-empty">對話已過期或不存在</div>';
+    return;
+  }
+
+  // Build session picker if there are multiple sessions for this customer
+  let pickerHTML = '';
+  if (state.selectedCustomerForList) {
+    const customerSessions = sessions.filter(x => x.customer_id === state.selectedCustomerForList);
+    if (customerSessions.length > 1) {
+      pickerHTML = `
+        <div style="font-size:0.8em;color:#355a7a;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,0.7);border-radius:8px">
+          這位客戶有 <b>${customerSessions.length}</b> 場對話，點選查看：
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+            ${customerSessions.map(cs => `
+              <span class="session-pill" data-sid="${cs.session_id}"
+                style="padding:2px 8px;border-radius:10px;cursor:pointer;font-size:0.9em;
+                       border:1px solid #355a7a;
+                       background:${cs.session_id === sid ? '#355a7a' : 'white'};
+                       color:${cs.session_id === sid ? 'white' : '#355a7a'}">
+                🐶 ${cs.agent_name} ${cs.status === 'active' ? '🟢' : '⚪'}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  const openingMsg = s.opening_line ? `
+    <div class="msg msg-customer">
+      <div class="msg-label">🐱 ${s.customer_name}（開場白）</div>
+      <div>${s.opening_line}</div>
+    </div>
+  ` : '';
+  const msgs = openingMsg + (s.history || []).map(turn => `
+    <div class="msg msg-salesperson">
+      <div class="msg-label">🐶 ${s.agent_name}</div>
+      <div>${turn.salesperson}</div>
+    </div>
+    <div class="msg msg-customer">
+      <div class="msg-label">🐱 ${s.customer_name}</div>
+      <div>${stripDealTag(turn.customer)}</div>
+    </div>
+  `).join('');
+  // Show interest card if user clicked the cat (not a specific dog)
+  const interestCardHTML = state.selectedCustomerForList ? buildInterestCard(s.customer_id) : '';
+
+  chatEl.innerHTML = `
+    ${interestCardHTML}
+    ${pickerHTML}
+    <div class="chat-header">🐶 ${s.agent_name} ↔ 🐱 ${s.customer_name} <span style="font-weight:normal;color:#71767b">(${s.status === 'active' ? '對話中' : '已結束'})</span></div>
+    ${msgs || '<div class="chat-empty">等待第一句...</div>'}
+  `;
+  // Wire up session-pill click events
+  chatEl.querySelectorAll('.session-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      state.selectedSession = pill.dataset.sid;
+      renderChat();
+    });
+  });
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+async function refresh() {
+  try {
+    const [sessRes, lbRes, teamLbRes, dealsRes] = await Promise.all([
+      fetch('/api/sessions'),
+      fetch('/api/leaderboard'),
+      fetch('/api/team_leaderboard'),
+      fetch('/api/deals'),
+    ]);
+    const sessions = await sessRes.json();
+    const leaderboard = await lbRes.json();
+    const teamLeaderboard = await teamLbRes.json();
+    const deals = await dealsRes.json();
+    window._lastSessions = sessions;
+    // Build team_id → color map from sessions for use elsewhere
+    window._teamColors = window._teamColors || {};
+    sessions.forEach(s => {
+      if (s.team_id && s.team_color) window._teamColors[s.team_id] = s.team_color;
+    });
+
+    // Stats
+    const activeSessions = sessions.filter(s => s.status === 'active');
+    document.getElementById('active-count').textContent = activeSessions.length;
+    document.getElementById('total-deals').textContent = deals.length;
+    const totalAmt = deals.reduce((sum, d) => sum + d.amount, 0);
+    document.getElementById('total-amount').textContent = formatAmount(totalAmt);
+
+    // Personal leaderboard with team-color tag
+    const lbEl = document.getElementById('leaderboard');
+    if (leaderboard.length === 0) {
+      lbEl.innerHTML = '<div class="empty">等待第一筆成交...</div>';
+    } else {
+      const medals = ['🥇', '🥈', '🥉'];
+      lbEl.innerHTML = leaderboard.map((item, i) => {
+        const teamTag = item.team_display_name && item.team_color
+          ? `<span style="font-size:0.75em;color:white;background:${item.team_color};border-radius:8px;padding:1px 6px;margin:0 4px">${item.team_display_name}</span>`
+          : '';
+        return `
+        <div class="leaderboard-item">
+          <span class="lb-rank">${medals[i] || (i+1)}</span>
+          <span class="lb-name">🐶 ${item.agent}${teamTag}</span>
+          <span class="lb-amount">${formatAmount(item.total_amount)}</span>
+        </div>
+      `;
+      }).join('');
+    }
+
+    // Team leaderboard
+    const teamLbEl = document.getElementById('team-leaderboard');
+    if (teamLeaderboard.length === 0) {
+      teamLbEl.innerHTML = '<div class="empty">等待第一筆成交...</div>';
+    } else {
+      const medals = ['🥇', '🥈', '🥉'];
+      teamLbEl.innerHTML = teamLeaderboard.map((item, i) => {
+        const color = (window._teamColors || {})[item.team_id] || '#71767b';
+        return `
+        <div class="leaderboard-item">
+          <span class="lb-rank">${medals[i] || (i+1)}</span>
+          <span class="lb-name" style="color:${color};font-weight:bold">${item.team_display_name}</span>
+          <span style="font-size:0.75em;color:#71767b">(${item.member_count}人)</span>
+          <span class="lb-amount">${formatAmount(item.total_amount)}</span>
+        </div>
+      `;
+      }).join('');
+    }
+
+    // Deals
+    const dealsEl = document.getElementById('deals');
+    if (deals.length === 0) {
+      dealsEl.innerHTML = '<div class="empty">尚無成交紀錄</div>';
+    } else {
+      dealsEl.innerHTML = deals.slice(0, 12).map(d => {
+        const teamTag = d.team_display_name && d.team_color
+          ? ` <span style="font-size:0.75em;color:white;background:${d.team_color};border-radius:8px;padding:1px 5px">${d.team_display_name}</span>`
+          : '';
+        return `
+        <div class="deal-item">
+          <div>🐶 ${d.agent}${teamTag} → 🐱 ${d.customer_name}</div>
+          <div>「${d.product}」 <span class="deal-amount">${formatAmount(d.amount)}</span></div>
+          <div class="deal-time">${timeAgo(d.timestamp)}</div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    // Park: dogs walking around
+    ensureCats();
+    const park = document.getElementById('park');
+
+    // Mark cat states (busy if active session); busy cats snap back to home
+    const busyCats = new Set();
+    activeSessions.forEach(s => busyCats.add(s.customer_id));
+    Object.keys(CAT_POSITIONS).forEach(id => {
+      const cat = document.getElementById(`cat-${id}`);
+      const wrapper = document.getElementById(`cat-wrapper-${id}`);
+      if (!cat || !wrapper) return;
+      cat.classList.remove('idle', 'busy', 'empty');
+      const remaining = (window._lastBudgets || {})[id] ?? null;
+
+      if (remaining != null && remaining <= 0) cat.classList.add('empty');
+      else if (busyCats.has(id)) {
+        cat.classList.add('busy');
+        // Snap back to home so dog can find it
+        const home = CAT_POSITIONS[id];
+        wrapper.style.left = home.x + '%';
+        wrapper.style.top = home.y + '%';
+      } else {
+        cat.classList.add('idle');
+      }
+    });
+
+    // Render dogs (one per active session, plus recently ended for fade-out effect)
+    const existingDogs = new Map();
+    park.querySelectorAll('.dog-wrapper').forEach(d => existingDogs.set(d.dataset.sid, d));
+
+    const showSessions = sessions.slice(0, 12);
+    const newSids = new Set(showSessions.map(s => s.session_id));
+
+    // Remove dogs of disappeared sessions
+    existingDogs.forEach((el, sid) => {
+      if (!newSids.has(sid)) el.remove();
+    });
+
+    // Group sessions by customer so multiple dogs can ring around the same cat
+    const dogsByCustomer = {};
+    showSessions.forEach(s => {
+      if (!dogsByCustomer[s.customer_id]) dogsByCustomer[s.customer_id] = [];
+      dogsByCustomer[s.customer_id].push(s);
+    });
+
+    function dogPosForRing(catX, catY, indexInRing, totalInRing) {
+      // 1 dog: directly below at distance 8
+      // 2 dogs: left/right below
+      // 3+ dogs: arc around the cat (bottom semicircle)
+      if (totalInRing === 1) return { x: catX, y: catY + 9 };
+      if (totalInRing === 2) {
+        return { x: catX + (indexInRing === 0 ? -8 : 8), y: catY + 8 };
+      }
+      // 3+ dogs: arc from -110° to +110° below cat
+      const radius = 10;
+      const startAngle = -110;
+      const endAngle = 110;
+      const step = (endAngle - startAngle) / (totalInRing - 1);
+      const angle = (startAngle + step * indexInRing) * Math.PI / 180;
+      return {
+        x: catX + Math.sin(angle) * radius,
+        y: catY + Math.cos(angle) * radius * 0.85,  // slightly flatter
+      };
+    }
+
+    showSessions.forEach((s, idx) => {
+      const catPos = CAT_POSITIONS[s.customer_id];
+      if (!catPos) return;
+      const isActive = s.status === 'active';
+      const dogStyle = dogStyleFor(s.agent_name);
+
+      let dogEl = existingDogs.get(s.session_id);
+      // Compute position around the cat based on how many dogs share this customer
+      const ring = dogsByCustomer[s.customer_id];
+      const indexInRing = ring.indexOf(s);
+      const target = dogPosForRing(catPos.x, catPos.y, indexInRing, ring.length);
+      const targetX = target.x;
+      const targetY = target.y;
+
+      if (!dogEl) {
+        dogEl = document.createElement('div');
+        dogEl.className = 'dog-wrapper';
+        dogEl.dataset.sid = s.session_id;
+        dogEl.style.cssText = `position:absolute;left:50%;top:105%;transform:translate(-50%,-50%);z-index:4`;
+        const teamColor = s.team_color || '#d97706';
+        dogEl.innerHTML = `
+          <div class="dog walking" data-sid="${s.session_id}" style="filter:${dogStyle.filter} drop-shadow(2px 2px 4px rgba(0,0,0,0.3))">${dogStyle.emoji}</div>
+          <div class="dog-label" style="border-color:${teamColor};color:${teamColor}">${s.agent_name}</div>
+        `;
+        park.appendChild(dogEl);
+        dogEl.querySelector('.dog').addEventListener('click', () => selectSession(s.session_id));
+        // Trigger walking animation
+        requestAnimationFrame(() => {
+          dogEl.style.left = targetX + '%';
+          dogEl.style.top = targetY + '%';
+          setTimeout(() => {
+            const dogInner = dogEl.querySelector('.dog');
+            if (dogInner && isActive) {
+              dogInner.classList.remove('walking');
+              dogInner.classList.add('talking');
+            }
+          }, 2000);
+        });
+      } else {
+        dogEl.style.left = targetX + '%';
+        dogEl.style.top = targetY + '%';
+        const dogInner = dogEl.querySelector('.dog');
+        if (dogInner) {
+          if (!isActive) {
+            // Ended session: walk back out of park and remove
+            dogInner.classList.remove('walking', 'talking');
+            dogEl.style.top = '105%';
+            dogEl.style.opacity = '0.8';
+            setTimeout(() => dogEl.remove(), 2500);
+          } else {
+            dogInner.classList.remove('walking');
+            dogInner.classList.add('talking');
+          }
+        }
+      }
+
+      // Speech bubbles for new messages.
+      // Wait for dog to finish walking on first appearance so bubbles are visible.
+      const isFreshDog = !existingDogs.has(s.session_id);
+      const bubbleDelay = isFreshDog ? 2200 : 0;
+      const lastTurn = state.lastTurnCounts[s.session_id] || 0;
+      if (s.turn_count > lastTurn && s.history && s.history.length > 0) {
+        const latestTurn = s.history[s.history.length - 1];
+        const catEl = document.getElementById(`cat-wrapper-${s.customer_id}`);
+        if (dogEl && latestTurn.salesperson) {
+          setTimeout(() => spawnBubble(dogEl, latestTurn.salesperson, false), bubbleDelay);
+        }
+        if (catEl && latestTurn.customer) {
+          setTimeout(() => spawnBubble(catEl, latestTurn.customer, true), bubbleDelay + 1800);
+        }
+        state.lastTurnCounts[s.session_id] = s.turn_count;
+      } else if (lastTurn === 0 && s.opening_line && (!s.history || s.history.length === 0)) {
+        // First time seeing this session and only opening line exists
+        const catEl = document.getElementById(`cat-wrapper-${s.customer_id}`);
+        if (catEl) setTimeout(() => spawnBubble(catEl, s.opening_line, true), bubbleDelay);
+        state.lastTurnCounts[s.session_id] = 0.5;
+      }
+    });
+
+    // Deal bursts on new deals
+    if (deals.length > state.lastDealCount && state.lastDealCount > 0) {
+      const newDeals = deals.slice(0, deals.length - state.lastDealCount);
+      newDeals.forEach(d => {
+        const pos = CAT_POSITIONS[d.customer_id];
+        if (pos) spawnDealBurst(pos.x, pos.y - 10);
+      });
+    }
+    state.lastDealCount = deals.length;
+
+    // Re-render chat if selected session updated
+    renderChat();
+
+    // Update budget cache + customers data (for cat appearance & idle quotes)
+    try {
+      const custRes = await fetch('/api/customers');
+      const custs = await custRes.json();
+      window._customersData = custs;
+      window._lastBudgets = {};
+      if (!window._originalBudgets) window._originalBudgets = {};
+      custs.forEach(c => {
+        window._lastBudgets[c.id] = c.remaining_budget;
+        if (!window._originalBudgets[c.id]) {
+          window._originalBudgets[c.id] = c.budget || c.remaining_budget;
+        }
+      });
+      // Render budget dashboard
+      const bdEl = document.getElementById('budget-dashboard');
+      if (bdEl && custs.length > 0) {
+        const catEmojis = {};
+        Object.keys(CAT_POSITIONS).forEach(id => { catEmojis[id] = CAT_POSITIONS[id].emoji; });
+        bdEl.innerHTML = custs.map(c => {
+          const total = c.budget || 1;
+          const pct = Math.round((c.remaining_budget / total) * 100);
+          const fillClass = pct <= 0 ? 'zero' : pct <= 25 ? 'low' : pct <= 60 ? 'mid' : 'high';
+          const emoji = catEmojis[c.id] || '🐱';
+          const remainingStr = c.remaining_budget <= 0 ? '已用完' : formatAmount(c.remaining_budget);
+          const totalStr = formatAmount(total);
+          const shortName = (c.name.indexOf(' - ') > -1) ? c.name.split(' - ')[1] : c.name;
+          const isHighDifficulty = c.chitchat_difficulty === 'high';
+          return `
+            <div class="bd-card" data-cid="${c.id}" style="cursor:pointer">
+              <span class="bd-emoji">${emoji}</span>
+              <div class="bd-info">
+                <div class="bd-name">${shortName} ${isHighDifficulty ? '<span style="font-size:0.7em;background:#e63946;color:white;padding:1px 4px;border-radius:4px;margin-left:2px">難</span>' : ''}</div>
+                <div class="bd-bar"><div class="bd-fill ${fillClass}" style="width:${pct}%"></div></div>
+                <div style="font-size:0.7em;color:#71767b;margin-top:2px">${remainingStr} / ${totalStr}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        // Wire up click → show interest card
+        bdEl.querySelectorAll('.bd-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const cid = card.dataset.cid;
+            selectByCustomer(cid);
+          });
+        });
+      }
+    } catch (err) { console.error('Budget dashboard error:', err); }
+  } catch (e) {
+    console.error('Refresh failed:', e);
+  }
+}
+
+ensureCats();
+refresh();
+setInterval(refresh, POLL_INTERVAL);
+// Cats wander every 5 seconds (only idle ones move)
+setInterval(wanderCats, 5000);
+// Random idle quotes every 6 seconds
+setInterval(showIdleQuotes, 6000);
+</script>
+</body>
+</html>
