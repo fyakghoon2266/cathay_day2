@@ -762,6 +762,20 @@ async function refresh() {
       const targetX = target.x;
       const targetY = target.y;
 
+      // Ended sessions: never show a walking/talking dog. If one exists, fade it
+      // out once and remove; if it doesn't exist, don't create one at all.
+      if (!isActive) {
+        if (dogEl && !dogEl.dataset.leaving) {
+          dogEl.dataset.leaving = "1";
+          const dogInner = dogEl.querySelector('.dog');
+          if (dogInner) dogInner.classList.remove('walking', 'talking');
+          dogEl.style.top = '105%';
+          dogEl.style.opacity = '0.5';
+          setTimeout(() => dogEl.remove(), 2000);
+        }
+        return;  // skip — no animation, no recreation for ended sessions
+      }
+
       if (!dogEl) {
         dogEl = document.createElement('div');
         dogEl.className = 'dog-wrapper';
@@ -780,7 +794,7 @@ async function refresh() {
           dogEl.style.top = targetY + '%';
           setTimeout(() => {
             const dogInner = dogEl.querySelector('.dog');
-            if (dogInner && isActive) {
+            if (dogInner) {
               dogInner.classList.remove('walking');
               dogInner.classList.add('talking');
             }
@@ -791,16 +805,8 @@ async function refresh() {
         dogEl.style.top = targetY + '%';
         const dogInner = dogEl.querySelector('.dog');
         if (dogInner) {
-          if (!isActive) {
-            // Ended session: walk back out of park and remove
-            dogInner.classList.remove('walking', 'talking');
-            dogEl.style.top = '105%';
-            dogEl.style.opacity = '0.8';
-            setTimeout(() => dogEl.remove(), 2500);
-          } else {
-            dogInner.classList.remove('walking');
-            dogInner.classList.add('talking');
-          }
+          dogInner.classList.remove('walking');
+          dogInner.classList.add('talking');
         }
       }
 

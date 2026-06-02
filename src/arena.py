@@ -61,13 +61,28 @@ def get_remaining_budget(customer_id: str) -> int:
     return int(val) if val else 0
 
 
+# Atomic check-and-deduct: avoids race conditions when many agents (e.g. 60
+# sub-agents) try to close on the same customer simultaneously. Runs entirely
+# inside Redis so the read + compare + decrement can't interleave.
+_DEDUCT_LUA = """
+local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+local amount = tonumber(ARGV[1])
+if amount > current then
+    return -1
+end
+redis.call('DECRBY', KEYS[1], amount)
+return current - amount
+"""
+_deduct_script = _redis.register_script(_DEDUCT_LUA)
+
+
 def deduct_budget(customer_id: str, amount: int) -> bool:
-    key = f"budget:{customer_id}"
-    current = int(_redis.get(key) or 0)
-    if amount > current:
+    """Atomically deduct `amount` from the customer's budget.
+    Returns True if deducted, False if insufficient budget."""
+    if amount <= 0:
         return False
-    _redis.decrby(key, amount)
-    return True
+    result = _deduct_script(keys=[f"budget:{customer_id}"], args=[amount])
+    return int(result) >= 0
 
 
 def detect_deal(customer_response: str) -> str | None:
