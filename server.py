@@ -213,14 +213,13 @@ def end_session(session_id: str) -> str:
         history=session_data["history"],
     )
 
-    # Coach LLM judges deal + extracts customer's stated amount.
-    # Final amount = (customer's stated amount) × performance multiplier.
+    # Coach LLM judges deal + extracts the amount the customer chose to invest.
+    # The customer decides the amount based on satisfaction (no score multiplier).
     deal_result = None
     if is_deal:
         budget = get_remaining_budget(session_data["customer_id"])
         default_offer = customer.get("default_offer", 1000000)
-        amount, mult = final_deal_amount(offered, score, budget, default_offer)
-        base = offered if offered and offered > 0 else default_offer
+        amount = final_deal_amount(offered, budget, default_offer)
 
         if amount > 0 and deduct_budget(session_data["customer_id"], amount):
             agent_name = session_data.get("agent_name") or validate_key(session_data["api_key"])["name"]
@@ -233,18 +232,15 @@ def end_session(session_id: str) -> str:
                 team_id=session_data.get("team_id", ""),
                 team_display_name=session_data.get("team_display_name", ""),
             )
-            offered_note = (f"客戶原本說投入 ${base:,}" if offered and offered > 0
-                            else f"客戶沒講明確金額（用預設基準 ${base:,}）")
+            capped_note = "（已達客戶剩餘預算上限）" if offered > amount and offered > 0 else ""
             deal_result = {
                 "product": product,
                 "amount": amount,
                 "score": score,
-                "multiplier": round(mult, 2),
                 "message": (
-                    f"🎉 成交！客戶購買「{product}」，最終投入 ${amount:,}\n"
-                    f"   計算方式：{offered_note}，因為你的表現分數 {score} 分"
-                    f"（倍率 {mult:.2f}x）→ 最終 ${amount:,}。\n"
-                    f"   {'表現出色，客戶加碼投入更多！' if mult >= 1.0 else '表現普通，客戶只願意投入一部分。'}"
+                    f"🎉 成交！客戶決定投入 ${amount:,} 購買「{product}」{capped_note}\n"
+                    f"   這個金額是客戶根據你的表現自己決定的——"
+                    f"你的教練分數 {score} 分。想讓客戶投更多？看評分建議改進你的 agent。"
                 ),
             }
         else:
@@ -252,7 +248,7 @@ def end_session(session_id: str) -> str:
                 "product": product,
                 "amount": 0,
                 "score": score,
-                "message": f"客戶有意願，但你的表現分數（{score}）太低（倍率 0），客戶最終沒有出手。",
+                "message": "客戶嘴上鬆動但最終沒有投入（金額為 0 或預算用完）。看評分找出問題。",
             }
 
     ended_data = end_session_db(session_id)
@@ -351,7 +347,7 @@ def run_full_session(
     if is_deal:
         budget = get_remaining_budget(customer_id)
         default_offer = customer.get("default_offer", 1000000)
-        amount, mult = final_deal_amount(offered, score, budget, default_offer)
+        amount = final_deal_amount(offered, budget, default_offer)
         if amount > 0 and deduct_budget(customer_id, amount):
             record_deal(
                 agent_name or user["name"], customer_id, product, amount, session_id,

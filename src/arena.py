@@ -86,42 +86,21 @@ def detect_deal(customer_response: str) -> str | None:
     return None
 
 
-def performance_multiplier(score: int) -> float:
-    """How much the customer adjusts their stated investment based on the
-    salesperson's performance score (0-100).
+def final_deal_amount(customer_offered: int, budget: int, default_offer: int) -> int:
+    """The deal amount is exactly what the customer said they'd invest.
 
-    90-100 → 1.5-2.0x  (impressed, invests more than first said)
-    70-89  → 1.0-1.3x  (satisfied, sticks to / slightly above stated)
-    50-69  → 0.6-0.9x  (hesitant, invests less than stated)
-    < 50   → 0         (walks away)
+    The customer agent itself decides how much based on satisfaction (see each
+    persona's amount_decision ladder), so there is NO score multiplier — the
+    number is taken at face value, only capped by remaining budget.
+
+    - customer_offered: amount the customer named; -1 if they agreed but gave no figure
+    - budget: remaining budget (hard cap)
+    - default_offer: persona fallback when the customer named no figure
     """
-    if score < 50:
-        return 0.0
-    if score >= 90:
-        return 1.5 + (score - 90) / 10 * 0.5    # 1.5 → 2.0
-    if score >= 70:
-        return 1.0 + (score - 70) / 20 * 0.3    # 1.0 → 1.3
-    return 0.6 + (score - 50) / 20 * 0.3        # 0.6 → 0.9
-
-
-def final_deal_amount(customer_offered: int, score: int, budget: int, default_offer: int) -> tuple[int, float]:
-    """Compute the final deal amount = (customer's stated amount) × performance multiplier.
-
-    - customer_offered: amount the customer named in conversation; -1 if unspecified
-    - score: coach score, drives the multiplier
-    - budget: customer's remaining budget (hard cap)
-    - default_offer: persona fallback when the customer didn't name a figure
-
-    Returns (final_amount, multiplier).
-    """
-    mult = performance_multiplier(score)
-    if mult == 0:
-        return 0, 0.0
     base = customer_offered if customer_offered and customer_offered > 0 else default_offer
-    amount = int(base * mult)
-    amount = min(amount, budget)               # never exceed remaining budget
-    amount = (amount // 10000) * 10000          # round to nearest 萬
-    return amount, mult
+    amount = min(base, budget)              # never exceed remaining budget
+    amount = (amount // 10000) * 10000       # round to nearest 萬
+    return amount
 
 
 def record_deal(
