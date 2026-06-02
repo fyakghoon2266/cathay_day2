@@ -13,6 +13,8 @@ def load_personas():
 
 
 def get_all_customers() -> list[dict]:
+    # Hidden customers (e.g. the load-test bot) never appear in listings,
+    # the random pool, or the dashboard — but get_customer(id) still finds them.
     return [
         {
             "id": c["id"],
@@ -28,6 +30,7 @@ def get_all_customers() -> list[dict]:
             "background_summary": c["background"].strip()[:120] + "...",
         }
         for c in _personas.values()
+        if not c.get("hidden")
     ]
 
 
@@ -38,6 +41,8 @@ def get_customer(customer_id: str) -> dict | None:
 def get_customers_by_tags(preferred_tags: list[str]) -> list[dict]:
     scored = []
     for c in _personas.values():
+        if c.get("hidden"):
+            continue
         overlap = len(set(preferred_tags) & set(c.get("tags", [])))
         scored.append((overlap, c))
     scored.sort(key=lambda x: x[0], reverse=True)

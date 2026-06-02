@@ -57,8 +57,19 @@ def init_customer_budget(customer_id: str, total_budget: int):
 
 
 def get_remaining_budget(customer_id: str) -> int:
-    val = _redis.get(f"budget:{customer_id}")
-    return int(val) if val else 0
+    key = f"budget:{customer_id}"
+    val = _redis.get(key)
+    if val is None:
+        # Self-heal: budget key missing (e.g. Redis was flushed/restarted while
+        # the server kept running). Re-seed from the persona's original budget
+        # so the arena keeps working without needing a server restart.
+        from .personas_loader import get_customer
+        c = get_customer(customer_id)
+        if c and c.get("budget"):
+            _redis.set(key, c["budget"])
+            return int(c["budget"])
+        return 0
+    return int(val)
 
 
 # Atomic check-and-deduct: avoids race conditions when many agents (e.g. 60
