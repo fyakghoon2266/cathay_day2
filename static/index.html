@@ -483,19 +483,31 @@ function buildInterestCard(customerId) {
   const customers = window._customersData || [];
   const c = customers.find(x => x.id === customerId);
   if (!c) return '';
-  const interests = (c.interests || []).map(i => `<li>${i}</li>`).join('');
-  const difficultyTag = c.chitchat_difficulty === 'high'
-    ? '<span style="background:#e63946;color:white;border-radius:8px;padding:2px 8px;font-size:0.75em;font-weight:bold">⚠️ 高難度（閒聊接不住會嚴重扣分）</span>'
-    : '<span style="background:#2a9d4f;color:white;border-radius:8px;padding:2px 8px;font-size:0.75em">一般難度</span>';
+  const diff = c.difficulty || 'medium';
+  const diffMap = {
+    easy:   { label: '🟢 入門', color: '#2a9d4f' },
+    medium: { label: '🟡 進階', color: '#f4a300' },
+    hard:   { label: '🔴 高手', color: '#e63946' },
+  };
+  const d = diffMap[diff] || diffMap.medium;
+  const budgetStr = c.budget >= 10000 ? '$' + (c.budget/10000).toFixed(0) + '萬' : '$' + (c.budget||0);
   return `
     <div style="background:rgba(255,255,255,0.95);border:1px solid #355a7a;border-radius:8px;padding:10px;margin-bottom:8px;font-size:0.85em">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <b style="color:#1a3d5c">🐱 ${c.name} 的興趣</b>
-        ${difficultyTag}
+        <b style="color:#1a3d5c">🐱 ${c.name}</b>
+        <span style="background:${d.color};color:white;border-radius:8px;padding:2px 8px;font-size:0.75em;font-weight:bold">${d.label}・預算 ${budgetStr}</span>
       </div>
-      <ul style="margin-left:18px;color:#355a7a;line-height:1.6">${interests}</ul>
-      <div style="font-size:0.75em;color:#71767b;margin-top:6px">
-        💡 提示：客戶可能會主動聊這些話題。如果有對應的 skill，agent 會更容易接住。
+      <div style="margin-bottom:6px">
+        <span style="color:#047857;font-weight:bold">🎯 商品方向：</span>
+        <span style="color:#355a7a">${c.product_direction_hint || '（未指定）'}</span>
+      </div>
+      <div style="margin-bottom:6px">
+        <span style="color:#d97706;font-weight:bold">💬 興趣話題：</span>
+        <span style="color:#355a7a">${c.interest_hook || '（無）'}</span>
+      </div>
+      <div style="font-size:0.75em;color:#71767b;border-top:1px solid #eee;padding-top:6px">
+        💡 商品方向推對才有機會。興趣 + 個人觀點答得好 → 高分大單。
+        建對應 skill 能大幅加分！
       </div>
     </div>
   `;
@@ -854,12 +866,16 @@ async function refresh() {
           const remainingStr = c.remaining_budget <= 0 ? '已用完' : formatAmount(c.remaining_budget);
           const totalStr = formatAmount(total);
           const shortName = (c.name.indexOf(' - ') > -1) ? c.name.split(' - ')[1] : c.name;
-          const isHighDifficulty = c.chitchat_difficulty === 'high';
+          const diffBadge = c.difficulty === 'hard'
+            ? '<span style="font-size:0.7em;background:#e63946;color:white;padding:1px 4px;border-radius:4px;margin-left:2px">高手</span>'
+            : c.difficulty === 'medium'
+            ? '<span style="font-size:0.7em;background:#f4a300;color:white;padding:1px 4px;border-radius:4px;margin-left:2px">進階</span>'
+            : '<span style="font-size:0.7em;background:#2a9d4f;color:white;padding:1px 4px;border-radius:4px;margin-left:2px">入門</span>';
           return `
             <div class="bd-card" data-cid="${c.id}" style="cursor:pointer">
               <span class="bd-emoji">${emoji}</span>
               <div class="bd-info">
-                <div class="bd-name">${shortName} ${isHighDifficulty ? '<span style="font-size:0.7em;background:#e63946;color:white;padding:1px 4px;border-radius:4px;margin-left:2px">難</span>' : ''}</div>
+                <div class="bd-name">${shortName} ${diffBadge}</div>
                 <div class="bd-bar"><div class="bd-fill ${fillClass}" style="width:${pct}%"></div></div>
                 <div style="font-size:0.7em;color:#71767b;margin-top:2px">${remainingStr} / ${totalStr}</div>
               </div>

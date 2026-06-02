@@ -21,6 +21,7 @@ from src.arena import (
     get_remaining_budget,
     deduct_budget,
     detect_deal,
+    final_deal_amount,
     record_deal,
     get_leaderboard,
     get_team_leaderboard,
@@ -168,13 +169,9 @@ def send_message(session_id: str, message: str) -> str:
 
     customer = get_customer(session_data["customer_id"])
     customer_response = get_customer_response(
-        persona_prompt=customer["persona_prompt"],
+        customer=customer,
         history=session_data["history"],
         salesperson_message=message,
-        model_id=customer.get("model_id", ""),
-        chitchat_topics=customer.get("chitchat_topics", ""),
-        chitchat_difficulty=customer.get("chitchat_difficulty", "normal"),
-        forced_trigger_sentence=customer.get("forced_trigger_sentence", ""),
     )
 
     updated = add_turn(session_id, message, customer_response)
@@ -185,31 +182,12 @@ def send_message(session_id: str, message: str) -> str:
         "turns_remaining": MAX_TURNS - updated["turn_count"],
     }
 
-    deal = detect_deal(customer_response)
-    if deal:
-        product, amount = deal
-        agent_name = session_data.get("agent_name") or validate_key(session_data["api_key"])["name"]
-        if deduct_budget(session_data["customer_id"], amount):
-            record_deal(
-                agent_name,
-                session_data["customer_id"],
-                product,
-                amount,
-                session_id,
-                team_id=session_data.get("team_id", ""),
-                team_display_name=session_data.get("team_display_name", ""),
-            )
-            result["deal"] = {
-                "product": product,
-                "amount": amount,
-                "message": f"🎉 恭喜成交！{customer['display_name']} 購買了「{product}」，金額 ${amount:,}",
-            }
-        else:
-            result["deal"] = {
-                "product": product,
-                "amount": 0,
-                "message": "客戶預算已不足，此筆成交未生效",
-            }
+    # If the customer's reply hints at buying (explicit marker OR natural language),
+    # nudge the salesperson to wrap up. Final deal verdict is judged by the coach
+    # LLM at end_session, so this is just an in-conversation hint.
+    if detect_deal(customer_response):
+        result["hint"] = (f"💡 {customer['display_name']} 似乎有購買意願了！"
+                          f"可以呼叫 end_session 結算——成交與否、金額多少由你的表現分數決定。")
 
     return json.dumps(result, ensure_ascii=False, indent=2)
 
@@ -230,20 +208,64 @@ def end_session(session_id: str) -> str:
 
     customer = get_customer(session_data["customer_id"])
 
-    evaluation = evaluate_session(
-        background=customer["background"],
-        success_conditions=customer["success_conditions"],
+    evaluation, score, is_deal, product, offered = evaluate_session(
+        customer=customer,
         history=session_data["history"],
-        interests=customer.get("interests", []),
     )
+
+    # Coach LLM judges deal + extracts customer's stated amount.
+    # Final amount = (customer's stated amount) × performance multiplier.
+    deal_result = None
+    if is_deal:
+        budget = get_remaining_budget(session_data["customer_id"])
+        default_offer = customer.get("default_offer", 1000000)
+        amount, mult = final_deal_amount(offered, score, budget, default_offer)
+        base = offered if offered and offered > 0 else default_offer
+
+        if amount > 0 and deduct_budget(session_data["customer_id"], amount):
+            agent_name = session_data.get("agent_name") or validate_key(session_data["api_key"])["name"]
+            record_deal(
+                agent_name,
+                session_data["customer_id"],
+                product,
+                amount,
+                session_id,
+                team_id=session_data.get("team_id", ""),
+                team_display_name=session_data.get("team_display_name", ""),
+            )
+            offered_note = (f"客戶原本說投入 ${base:,}" if offered and offered > 0
+                            else f"客戶沒講明確金額（用預設基準 ${base:,}）")
+            deal_result = {
+                "product": product,
+                "amount": amount,
+                "score": score,
+                "multiplier": round(mult, 2),
+                "message": (
+                    f"🎉 成交！客戶購買「{product}」，最終投入 ${amount:,}\n"
+                    f"   計算方式：{offered_note}，因為你的表現分數 {score} 分"
+                    f"（倍率 {mult:.2f}x）→ 最終 ${amount:,}。\n"
+                    f"   {'表現出色，客戶加碼投入更多！' if mult >= 1.0 else '表現普通，客戶只願意投入一部分。'}"
+                ),
+            }
+        else:
+            deal_result = {
+                "product": product,
+                "amount": 0,
+                "score": score,
+                "message": f"客戶有意願，但你的表現分數（{score}）太低（倍率 0），客戶最終沒有出手。",
+            }
 
     ended_data = end_session_db(session_id)
     transcript_path = save_transcript(ended_data, evaluation)
 
+    remaining = get_remaining_budget(session_data["customer_id"])
     return json.dumps({
+        "score": score,
         "evaluation": evaluation,
+        "deal": deal_result,
         "summary": {
             "customer": customer["display_name"],
+            "customer_remaining_budget": remaining,
             "total_turns": ended_data["turn_count"],
             "transcript_saved": transcript_path,
         },
@@ -308,41 +330,34 @@ def run_full_session(
         )
 
         customer_response = get_customer_response(
-            persona_prompt=customer["persona_prompt"],
+            customer=customer,
             history=history,
             salesperson_message=salesperson_response,
-            model_id=customer.get("model_id", ""),
-            chitchat_topics=customer.get("chitchat_topics", ""),
-            chitchat_difficulty=customer.get("chitchat_difficulty", "normal"),
-            forced_trigger_sentence=customer.get("forced_trigger_sentence", ""),
         )
 
         turn = {"salesperson": salesperson_response, "customer": customer_response}
         history.append(turn)
         add_turn(session_id, salesperson_response, customer_response)
 
-        deal = detect_deal(customer_response)
-        if deal:
-            product, amount = deal
-            deal_agent_name = agent_name or user["name"]
-            if deduct_budget(customer_id, amount):
-                record_deal(
-                    deal_agent_name, customer_id, product, amount, session_id,
-                    team_id=team_id, team_display_name=final_team_name,
-                )
-                deals_made.append({"product": product, "amount": amount})
-
         if turn_num >= 3 and should_end_conversation(history):
             break
 
         customer_message = customer_response
 
-    evaluation = evaluate_session(
-        background=customer["background"],
-        success_conditions=customer["success_conditions"],
-        history=history,
-        interests=customer.get("interests", []),
-    )
+    evaluation, score, is_deal, product, offered = evaluate_session(customer=customer, history=history)
+
+    # Coach LLM judges deal + extracts stated amount; final = stated × multiplier
+    deals_made: list[dict] = []
+    if is_deal:
+        budget = get_remaining_budget(customer_id)
+        default_offer = customer.get("default_offer", 1000000)
+        amount, mult = final_deal_amount(offered, score, budget, default_offer)
+        if amount > 0 and deduct_budget(customer_id, amount):
+            record_deal(
+                agent_name or user["name"], customer_id, product, amount, session_id,
+                team_id=team_id, team_display_name=final_team_name,
+            )
+            deals_made.append({"product": product, "amount": amount})
 
     ended_data = end_session_db(session_id)
     transcript_path = save_transcript(ended_data, evaluation)
@@ -355,6 +370,7 @@ def run_full_session(
 
     return json.dumps({
         "conversation": conversation_display,
+        "score": score,
         "deals": deals_made,
         "evaluation": evaluation,
         "summary": {

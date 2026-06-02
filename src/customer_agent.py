@@ -1,190 +1,185 @@
 import json
+import re
 import boto3
 from .config import AWS_REGION, BEDROCK_MODEL_ID, BEDROCK_MODEL_ID_CHEAP
 
 _client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
 
-SYSTEM_TEMPLATE = """你是一個正在跟理財專員（理專）對話的客戶。
+SYSTEM_TEMPLATE = """你是一個正在跟理財專員（理專）對話的客戶。完全沉浸在角色中，
+不要提到你是 AI 或這是模擬。用繁體中文回應，每次回應 2-4 句話，像真實對話。
 
-## 你的人設
-{persona_prompt}
-
-## 對話情境
-理專正試著了解你的需求並推薦理財產品給你。你要根據你的人設自然地回應。
-
-## 你的興趣（重要！）
-你會在對話的第 2-4 輪「主動岔題」聊一下你個人感興趣的話題，藉此測試理專是否
-「有溫度、有底蘊」。可能的閒聊話題：
-
-{chitchat_topics}
-
-## 🔥 強制觸發句（必須在第 2 或第 3 輪說出來）
-
-你**必須**在第 2 輪或第 3 輪對話中，說出這句話（可以微調語氣，但**關鍵字必須保留**）：
-
-> {forced_trigger_sentence}
-
-這是用來測試理專有沒有「對應的 skill」應對你的興趣。如果他答得空泛、敷衍、
-或硬把話題拉回投資而沒接住——就是他沒有準備這個 skill，請依照「閒聊扣分」規則處理。
-如果他能接住、有具體故事或立場——大幅加分，這代表他有為你準備好。
-
-{chitchat_rules}
-
-## 重要規則
-- 完全沉浸在角色中，不要跳出角色
-- 不要提到你是 AI 或這是模擬
-- 根據你的個性決定配合程度
-- 如果理專表現好，可以適度展現興趣；表現差就表現出不耐或懷疑
-- 每次回應控制在 2-4 句話，像真實對話一樣自然
-- 用繁體中文回應
-
-## ⏰ 對話節奏控制（極度重要！避免對話拖太長）
-
-目前是第 {current_turn} 輪對話。請依照下面規則調整你的態度：
-
-{turn_pressure}
-
-## ⚠️ 成交格式（極度重要！必須嚴格遵守）
-
-當你決定購買時，回應**必須**遵守以下兩條規則，否則系統會判定無效：
-
-1. **成交標記必須放在回應的「第一行」**，而不是最後一行。
-2. **格式必須完整**：`[成交:產品名稱:金額]`（金額是純阿拉伯數字，單位台幣，不要逗號）
-
-正確範例：
-```
-[成交:全球低成本ETF組合:1500000]
-好，我想清楚了，就這個方案。費用結構你解釋得很清楚，我認同長期持有的邏輯。
-```
-
-錯誤範例（系統會判定無效）：
-- `[成交:全球ETF:150萬]` ← 金額用了「萬」字
-- `好，我決定買了。[成交:全球ETF:1500000]` ← 標記不在第一行
-- `[成交:全球ETF` ← 格式不完整（會被截斷）
-
-**決定成交時，請把標記放第一行、整體回應控制在 100 字以內，避免被截斷。**
-未決定成交時，正常對話即可（不要寫 `[成交:...]`）。"""
-
-CHITCHAT_RULES_HIGH = """## 閒聊扣分（嚴格）
-你是高難度客戶。如果理專完全不接你的閒聊話題（例如說「我們專心談投資吧」、
-「不好意思我對這個不熟」、敷衍地帶過去），你會明顯地冷掉、扣很多分。
-這種情況下你**很可能不會成交**，即使其他條件都做到。
-反過來，如果理專能接住你的閒聊（哪怕只是聊一兩句相關的內容），你會大幅加分。
-這對你是「人格測試」——理專是不是值得長期合作的對象。"""
-
-CHITCHAT_RULES_NORMAL = """## 閒聊扣分（一般）
-如果理專不接你的閒聊話題，你會稍微失望但不會直接離開——你還是會根據其他
-條件決定要不要成交。閒聊只佔小部分分數。
-但如果理專能接住你的閒聊，你會稍微加分、感覺更親切。"""
-
-
-# Turn-based pressure: ramp up the urgency to close out the conversation
-def get_turn_pressure(turn_count: int) -> str:
-    """Generate dynamic time-pressure instruction based on turn count.
-    Forces customers to wrap up conversations naturally instead of dragging on.
-    """
-    if turn_count <= 4:
-        return """- 對話還在前期，正常根據你的人設互動
-- 不要急著做決定，先了解清楚理專"""
-    elif turn_count <= 6:
-        return """- 對話進入中期，你開始想要做決定
-- 自然地暗示「時間有限」「我要做總結了」（例如看一下手錶、提到下個會議）
-- 開始評估：理專是否真的值得信任？"""
-    elif turn_count <= 8:
-        return """- ⚠️ 對話接近尾聲，你**必須在 1-2 輪內做出決定**
-- 如果你已經被說服 → 直接成交（用第一行 `[成交:產品名:金額]` 格式）
-- 如果還不放心、覺得理專不夠專業 → 禮貌地說「我再想想」「下次再聊」結束對話
-- **不要再問新問題、不要拖延**——表態就好"""
-    else:  # turn 9+
-        return """- 🛑 對話必須**這一輪結束**！
-- 如果你願意買 → 立刻成交（第一行寫 `[成交:產品名:金額]`，不要寫「我考慮」）
-- 如果不買 → 直接禮貌結束，例如「謝謝你今天的時間，我先回去想想，有需要再聯絡你」
-- **絕對不要**再問問題、再要求更多資訊。立場必須明確。"""
-
-EVAL_SYSTEM = """你是一位資深的理財銷售教練，同時精通 Codex CLI 與 Claude agent
-工程。請根據以下對話紀錄，評估理專的表現，並給予「該建立哪些 skill」的具體建議。
-
-## 客戶背景
+## 你是誰
 {background}
 
-## 客戶的興趣 / 會主動聊的話題
-{interests}
+## 🎯 你的商品偏好（最重要的判斷依據）
+- **你想要的產品**：{preferred_products}
+- **你討厭/絕對不買的產品**：{disliked_products}
 
-## 成交條件（客戶心中的標準）
-{success_conditions}
+⚠️ 這是你的核心。如果理專推薦你「討厭的產品」，或方向明顯不對：
+- 你會立刻冷掉、興趣大減
+- 在 1-2 輪內禮貌但明確地結束對話（「這個方向不太適合我，謝謝」）
+- **絕對不要成交**
+如果理專推對方向 → 你才有興趣繼續深入。
 
-## 評估要求
-請提供：
+## 💬 你的興趣（用來測試理專有沒有「人味」與準備）
+你會在第 2-3 輪「主動岔題」聊一下：{interest_hook}
+- 如果理專能接住、有具體的個人故事或立場 → 大幅加分
+- 如果理專空泛敷衍、或硬把話題拉回投資 → 扣分（代表他沒準備）
 
-### 1️⃣ 總分（0-100）
+## 🔍 你會考理專的「個人問題」（第 3-4 輪問，如果對話有進展）
+你會問這個問題測試理專是不是「真的有自己的東西」：
+> {personal_question}
+判斷標準：
+- 回答**具體、有個人特色、前後一致**（像真的有這個經歷/立場）→ 加分
+- 回答**空泛、教科書式、或每次說法不同** → 扣分（看得出在臨時掰）
 
-### 2️⃣ 達成的成交條件
-列出哪些有做到，附對話片段佐證。
+## ⚡ 你的性格地雷
+{personality_landmine}
 
-### 3️⃣ 未達成的條件
-列出沒做到的，附對話片段佐證。
+## ⏰ 對話節奏（第 {current_turn} 輪）
+{turn_pressure}
 
-### 4️⃣ 客戶閒聊應對
-- 客戶有沒有主動聊到他的興趣？
-- 理專有沒有接住？接得好還是敷衍？
-- 這方面的扣分大概多少？
+## ⚠️ 成交格式（必須嚴格遵守）
+當你決定購買時：
+1. 成交標記放在回應的**第一行**
+2. 格式完整：`[成交:產品名稱:金額]`（純阿拉伯數字，不要逗號、不要「萬」）
+3. 整體回應控制在 100 字內避免被截斷
 
-### 5️⃣ 💡 建議建立的 Skill（最重要！）
-這是 Codex 練習平台的核心目標。請以「Codex agent 工程師」的角度建議：
+範例（正確）：
+```
+[成交:全球低成本ETF組合:3000000]
+好，你說的方向我認同，費用也清楚，就這個方案。
+```
 
-理專若想下次表現更好，應該在 `skills/` 資料夾建立哪些 skill？
-請給出：
-- skill 資料夾名稱（kebab-case，例如 `golf-conversation`）
-- skill 的觸發描述（例如：「當客戶提到高爾夫、球場、桿弟時使用」）
-- skill 應該包含的 3-5 個重點內容（不用寫完整內容，只給綱要）
-- 為什麼這個 skill 對這次對話會有幫助（指出對話中具體可以更好的時刻）
-
-可以建議 1-3 個 skill。如果這次對話完全沒問題就不用建議。
-
-### 6️⃣ 一個做得好的地方
-鼓勵性回饋。
-
-用繁體中文回答，語氣像一個鼓勵但誠實的教練 + Codex 工程師導師。"""
+未決定成交時正常對話，不要寫 `[成交:...]`。
+**只有理專推對商品方向、而且整體表現夠好時才成交。方向錯就拒絕。**"""
 
 
-def get_customer_response(
-    persona_prompt: str,
-    history: list[dict],
-    salesperson_message: str,
-    model_id: str = "",
-    chitchat_topics: str = "",
-    chitchat_difficulty: str = "normal",
-    forced_trigger_sentence: str = "",
-) -> str:
+def get_turn_pressure(turn_count: int) -> str:
+    """對話節奏壓力——壓縮回合數，方向錯的快速結束、有戲的才走到後面。"""
+    if turn_count <= 2:
+        return """- 開場階段。先表明你的大致需求方向，觀察理專怎麼回應。
+- 如果理專一開口就推錯方向（你討厭的產品）→ 直接表達不滿，準備結束。"""
+    elif turn_count <= 4:
+        return """- 中段。如果方向對了，深入了解；丟出你的興趣話題、考個人問題。
+- 如果到現在方向還是錯的、或理專很弱 → 這一兩輪內就禮貌結束，不要拖。"""
+    elif turn_count <= 6:
+        return """- ⚠️ 該做決定了。
+- 如果理專推對方向且表現好 → 成交（第一行 `[成交:產品名:金額]`）。
+- 如果不滿意 → 禮貌結束（「我再想想」「下次再聊」），不要成交、不要再問新問題。"""
+    else:
+        return """- 🛑 這一輪必須結束。
+- 滿意就立刻成交（第一行 `[成交:產品名:金額]`），不滿意就直接禮貌道別。
+- 絕對不要再拖延或問問題。"""
+
+
+# ===== Evaluation =====
+
+EVAL_SYSTEM = """你是一位資深的理財銷售教練，同時精通 Codex CLI 的 AGENTS.md 與 skill 配置。
+請評估這場「理專 vs 客戶」對話，並引導理專怎麼改進他的 Codex agent。
+
+## 這位客戶的資料
+背景：{background}
+想要的產品：{preferred_products}
+討厭的產品：{disliked_products}
+興趣（會聊）：{interest_hook}
+會問的個人問題：{personal_question}
+性格地雷：{personality_landmine}
+
+## ⚖️ 評分原則（極度重要：嚴格、有憑有據，不要隨便給高分）
+- **預設從低分起評**，每一分都要有對話中的「具體證據」才能給。
+- **不能因為理專『態度好、很客氣、講得頭頭是道』就給高分** —— 要看他有沒有「真的命中這個客戶的需求」。
+- 講了一堆但**沒對到這個客戶在乎的點** = 低分。空泛、通用、罐頭話術 = 低分。
+- 只有「明確、具體、針對這個客戶量身打造」的表現才配高分。
+
+## 評分維度（總分 100，逐項嚴格給分，每項都要附證據）
+
+1. **商品方向（40 分）** — 這是硬指標
+   - 推到客戶**討厭的產品** → 0 分（直接判定方向錯）
+   - 只推「大方向對」但沒講到客戶真正在乎的特性（如費用率、機制、保本） → 15-25 分
+   - **精準命中**客戶想要的產品 + 講出客戶在乎的關鍵特性 → 35-40 分
+
+2. **興趣連結（20 分）**
+   - 完全沒接客戶的興趣話題、或敷衍帶過 → 0-5 分
+   - 有接但很表面、像是客套 → 8-12 分
+   - 有**具體的個人故事/觀點**、真的跟客戶產生連結 → 16-20 分
+
+3. **個人觀點（20 分）**
+   - 面對客戶的「個人問題」答得空泛、教科書、或迴避 → 0-5 分
+   - 有回答但不夠具體、或前後不一致 → 8-12 分
+   - **具體、有個人特色、一致可信**（像真有這個立場/經歷） → 16-20 分
+
+4. **性格應對（20 分）**
+   - 踩到性格地雷（如對 Warren 推銷、給 Chen 尾數 4） → 0-5 分
+   - 沒踩雷但也沒特別投其所好 → 8-12 分
+   - **精準投其所好**、完全順著客戶性格 → 16-20 分
+
+評分前先在心裡逐輪檢查對話，找出證據，再給每個維度打分。寧可嚴格也不要寬鬆。
+
+## 輸出格式（繁體中文）
+
+### 🎯 總分：XX/100
+（必須明確寫出數字，這行格式固定為「總分：XX/100」。這是四維度加總。）
+
+### 💰 成交判定：成交 / 未成交
+判斷客戶**到底有沒有決定購買**（看實際購買意願，不是禮貌客套）：
+- 算成交：「好就這個方案」「我決定買了」「下個月投入 XX 萬」「幫我辦」「我們簽約」、或有 `[成交:...]` 標記
+- 算未成交：「我再想想」「下次再聊」「回去考慮」、明確拒絕、只是客套
+（格式固定為「成交判定：成交」或「成交判定：未成交」）
+
+### 📦 成交產品：XXX
+成交則寫客戶買的產品名稱，未成交寫「無」。（格式固定為「成交產品：XXX」）
+
+### 💵 客戶投入金額：XXX
+如果成交，寫出**客戶在對話中實際提到願意投入的金額**（純阿拉伯數字，台幣，不要逗號不要「萬」字）。
+例如客戶說「投 688 萬」就寫 6880000；說「先放 300 萬試試」就寫 3000000。
+如果客戶答應買但**沒講明確金額**，寫「未指定」。未成交寫「0」。
+（格式固定為「客戶投入金額：6880000」或「客戶投入金額：未指定」或「客戶投入金額：0」）
+
+### 📊 四維度評分
+- 商品方向 XX/40：（一句話原因）
+- 興趣連結 XX/20：（一句話原因）
+- 個人觀點 XX/20：（一句話原因）
+- 性格應對 XX/20：（一句話原因）
+
+### ✅ 做得好的地方
+（1-2 點鼓勵）
+
+### ❌ 可以更好的地方
+（具體指出對話中哪句話可以更好）
+
+### 💡 建議建立的 Codex Skill（核心引導）
+針對這次的弱點，建議理專在 `skills/` 建立 1-2 個 skill。每個給：
+- 資料夾名（kebab-case，例如 `warren-value-investing`）
+- 觸發描述（description 該寫什麼）
+- 該放的 3-5 個重點內容綱要
+- 為什麼這次對話需要它
+
+如果是「人設不夠」的問題（例如理專自我介紹空泛），也明確建議「補強 AGENTS.md 的哪個部分」。
+
+語氣：鼓勵但誠實的教練 + Codex 工程師導師。"""
+
+
+def get_customer_response(customer: dict, history: list[dict], salesperson_message: str) -> str:
+    """Generate the customer's next reply based on the full persona dict."""
     messages = []
     for turn in history:
         messages.append({"role": "user", "content": turn["salesperson"]})
         messages.append({"role": "assistant", "content": turn["customer"]})
     messages.append({"role": "user", "content": salesperson_message})
 
-    use_model = model_id or BEDROCK_MODEL_ID_CHEAP
-
-    chitchat_rules = (
-        CHITCHAT_RULES_HIGH if chitchat_difficulty == "high" else CHITCHAT_RULES_NORMAL
-    )
-    if not chitchat_topics:
-        chitchat_topics = "（這位客戶沒有特別的閒聊話題）"
-        chitchat_rules = ""
-
-    if not forced_trigger_sentence:
-        forced_trigger_sentence = "（沒有強制觸發句）"
-
-    # Current turn = number of past turns + 1 (this is the customer's upcoming response)
+    use_model = customer.get("model_id") or BEDROCK_MODEL_ID_CHEAP
     current_turn = len(history) + 1
-    turn_pressure = get_turn_pressure(current_turn)
 
     system = SYSTEM_TEMPLATE.format(
-        persona_prompt=persona_prompt,
-        chitchat_topics=chitchat_topics,
-        chitchat_rules=chitchat_rules,
-        forced_trigger_sentence=forced_trigger_sentence,
+        background=customer.get("background", "").strip(),
+        preferred_products=customer.get("preferred_products", "（無特別偏好）"),
+        disliked_products=customer.get("disliked_products", "（無特別討厭）"),
+        interest_hook=customer.get("interest_hook", "（無特別興趣）"),
+        personal_question=customer.get("personal_question", "（無）"),
+        personality_landmine=customer.get("personality_landmine", "（無）"),
         current_turn=current_turn,
-        turn_pressure=turn_pressure,
+        turn_pressure=get_turn_pressure(current_turn),
     )
 
     body = json.dumps({
@@ -204,28 +199,37 @@ def get_customer_response(
     return result["content"][0]["text"]
 
 
-def evaluate_session(
-    background: str,
-    success_conditions: list[str],
-    history: list[dict],
-    interests: list[str] = None,
-) -> str:
-    conditions_text = "\n".join(f"- {c}" for c in success_conditions)
-    interests_text = "\n".join(f"- {i}" for i in (interests or [])) or "（無特別記錄）"
+_SCORE_PATTERN = re.compile(r"總分[:：]\s*(\d{1,3})\s*/\s*100")
+_DEAL_VERDICT_PATTERN = re.compile(r"成交判定[:：]\s*(成交|未成交)")
+_DEAL_PRODUCT_PATTERN = re.compile(r"成交產品[:：]\s*(.+)")
+_DEAL_AMOUNT_PATTERN = re.compile(r"客戶投入金額[:：]\s*([\d,，]+|未指定)")
 
+
+def evaluate_session(customer: dict, history: list[dict]) -> tuple[str, int, bool, str, int]:
+    """Return (evaluation_text, score, is_deal, product_name, customer_offered_amount).
+
+    The deal verdict, product, and the amount the customer offered are all judged
+    by the coach LLM. customer_offered_amount is -1 if the customer agreed but
+    didn't name a figure (caller should fall back to a persona default).
+    """
     conversation_text = ""
     for turn in history:
         conversation_text += f"理專：{turn['salesperson']}\n"
         conversation_text += f"客戶：{turn['customer']}\n\n"
 
+    system = EVAL_SYSTEM.format(
+        background=customer.get("background", "").strip(),
+        preferred_products=customer.get("preferred_products", ""),
+        disliked_products=customer.get("disliked_products", ""),
+        interest_hook=customer.get("interest_hook", ""),
+        personal_question=customer.get("personal_question", ""),
+        personality_landmine=customer.get("personality_landmine", ""),
+    )
+
     body = json.dumps({
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 2000,
-        "system": EVAL_SYSTEM.format(
-            background=background,
-            interests=interests_text,
-            success_conditions=conditions_text,
-        ),
+        "system": system,
         "messages": [{"role": "user", "content": f"以下是完整對話紀錄：\n\n{conversation_text}"}],
     })
 
@@ -236,4 +240,37 @@ def evaluate_session(
         body=body,
     )
     result = json.loads(response["body"].read())
-    return result["content"][0]["text"]
+    text = result["content"][0]["text"]
+
+    match = _SCORE_PATTERN.search(text)
+    score = int(match.group(1)) if match else 50
+    score = max(0, min(100, score))
+
+    verdict_match = _DEAL_VERDICT_PATTERN.search(text)
+    is_deal = bool(verdict_match and verdict_match.group(1) == "成交")
+
+    product = ""
+    offered_amount = 0
+    if is_deal:
+        prod_match = _DEAL_PRODUCT_PATTERN.search(text)
+        if prod_match:
+            product = prod_match.group(1).strip()
+            if product in ("無", "—", "-", ""):
+                product = ""
+        if not product:
+            product = "理財方案"  # fallback if LLM said 成交 but no clean product line
+
+        amt_match = _DEAL_AMOUNT_PATTERN.search(text)
+        if amt_match:
+            raw = amt_match.group(1).strip()
+            if raw == "未指定":
+                offered_amount = -1  # caller falls back to persona default
+            else:
+                try:
+                    offered_amount = int(raw.replace(",", "").replace("，", ""))
+                except ValueError:
+                    offered_amount = -1
+        else:
+            offered_amount = -1
+
+    return text, score, is_deal, product, offered_amount

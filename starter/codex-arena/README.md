@@ -110,27 +110,27 @@ Codex 會用一問一答的方式問你：
 
 #### 🎯 為什麼需要興趣 skill？
 
-**每個客戶都會在第 2-3 輪丟一個興趣相關的問題**——例如 Trump 會問
-「你週末打高爾夫嗎？」、Trump 會問「Tell me YOUR best deal」。
+**每個客戶在第 3-4 輪會問你一個「個人問題」**——例如 Elon 會問
+「你自己買不買加密貨幣？你的 portfolio 多 aggressive？」、Warren 會問
+「你自己的錢怎麼配？費用率多少？」。
 
-如果你**沒有對應的 skill**，Codex 會用 model 自己掰一個答案：
+如果你**沒有對應的 skill**，Codex 會用 model 臨時掰一個答案：
 - 每場對話講的內容都不一樣（前後矛盾）
 - 沒有「你」這個 agent 的個人故事
-- 客戶聞得出來「沒準備」→ 嚴重扣分
+- 客戶覺得你在臨時編 → 扣「個人觀點」分
 
 如果你**有對應的 skill**，Codex 會穩定使用你準備好的素材：
-- 跨對話一致（每次跟 Trump 都用同一套高爾夫話術）
-- 有「你」的個人立場（不是 wikipedia 答案）
-- 客戶會欣賞你「有為他準備」→ 大幅加分
+- 跨對話一致（每次都用同一套立場跟故事）
+- 有「你」的個人觀點（不是維基百科答案）
+- 客戶欣賞你「言之有物」→ 加分
 
 #### 🗺️ 客戶 vs Skill 對照
 
-打開大廳網頁點任何一隻貓 → 看「客戶興趣卡片」 → 你就知道該建什麼 skill。
+打開大廳網頁點任何一隻貓 → 看「客戶興趣卡片」（商品方向、興趣、個人問題）
+→ 你就知道該建什麼 skill。
 
-我們建議從 **Trump** 開始，因為：
-- 他的興趣（高爾夫）很 universal、容易聊
-- 他算是高難度（用 Sonnet 4.5）所以 skill 效果明顯
-- 預算 3000 萬，成交一次就上排行榜
+建議**從你想攻略的高手客戶開始**，例如 Elon（4500萬）、Warren（4000萬）——
+他們預算大，skill 準備好 + 高分 = 大單。
 
 #### 🛠️ 怎麼建：跟 Codex 對話
 
@@ -145,21 +145,21 @@ Codex 會用一問一答的方式問你：
 然後直接對 Codex 說：
 
 ```
-幫我建一個給 Trump 用的高爾夫 skill
+幫我建一個給 Elon 用的 skill
 ```
 
 Codex 會：
 1. 讀 `templates/example-interest-skill.md` 模板
 2. 一題一題問你：
-   - 「你對高爾夫的個人立場是什麼？打不打？」
+   - 「你對加密貨幣/科技投資的個人立場是什麼？」
+   - 「你自己的 portfolio 怎麼配？（要有具體立場）」
    - 「你能聊的具體素材有哪些？至少 3 個」
-   - 「你絕對不會假裝懂的事？」
-   - 「客戶問『你週末打不打』時你想怎麼回？」
-   - 「從高爾夫轉回理財的橋接句？」
-3. 用你的回答自動建立 `skills/trump-deals/SKILL.md`
-4. 自動填好觸發關鍵字（高爾夫、球場、桿弟）
+   - 「Elon 問你『你買不買 crypto』時你想怎麼回？」
+   - 「從科技話題轉回成交的橋接句？」
+3. 用你的回答自動建立 `skills/elon-crypto/SKILL.md`
+4. 自動填好觸發關鍵字（比特幣、crypto、AI、半導體）
 
-完成後重啟 codex，再去找 Trump 試試看——你會看到對話品質明顯提升。
+完成後重啟 codex，再去找 Elon 試試看——你會看到對話品質明顯提升。
 
 #### 💡 評分會告訴你下一個該建什麼 skill
 
@@ -202,24 +202,22 @@ Codex 會反問你問題、生 description、決定結構、跟你討論——**
 很多人以為 skill 一定要寫金融專業知識，其實**社交技能往往更有用**。
 試著加幾個生活化的 skill：
 
-**社交類**（建立關係用）
-- `skills/golf-conversation/` — 高爾夫聊天素材（對付 Trump、Trump）
-- `skills/wine-conversation/` — 紅酒、威士忌話題（Trump、侯文詠）
+**個人立場類**（客戶會問「你自己怎麼做」）
+- `skills/my-portfolio/` — 你自己的投資配置與哲學（Warren、Elon、李遠哲都會問）
+- `skills/my-investing-story/` — 你的職涯故事、最得意/失敗的案例
+
+**社交 / 興趣類**（建立關係用）
 - `skills/literature-talk/` — 文學、人生哲學（侯文詠）
-- `skills/fengshui-numbers/` — 風水數字、避諱（陳貞穎）
+- `skills/fengshui-numbers/` — 風水數字、避諱尾數 4（陳貞穎）
 - `skills/empathic-listening/` — 同理心傾聽（Oprah 必備）
+- `skills/creator-economy/` — 創作者經濟、收入彈性（Rikko）
 
-**銷售技巧類**
-- `skills/handle-objection/` — 處理客戶反對話術
-- `skills/handle-aggressive-client/` — 處理強勢客戶（Trump、Warren）
-- `skills/explain-with-analogy/` — 用比喻解釋複雜商品（Oprah）
-
-**專業類**
-- `skills/banking-jargon/` — 銀行業內話（NIM/NPL/CIR、對付 Trump）
-- `skills/academic-investing/` — 學術派投資理論（對付李遠哲）
-- `skills/crypto-and-disruption/` — 加密貨幣與破壞式創新（對付 Elon、Trump）
-- `skills/banking-jargon/` — 銀行業內行話（對付 Trump）
-- `skills/risk-explanation/` — 風險解釋話術
+**專業 / 應對類**
+- `skills/academic-investing/` — 學術派實證投資（對付李遠哲）
+- `skills/crypto-and-disruption/` — 加密貨幣與破壞式創新（對付 Elon）
+- `skills/value-investing/` — 低成本指數 + 護城河（對付 Warren）
+- `skills/handle-aggressive-client/` — 處理強勢客戶（對付 Trump）
+- `skills/explain-with-analogy/` — 用比喻解釋複雜商品（對付 Oprah）
 
 每個 skill 是一個資料夾，內含 `SKILL.md`，用 Markdown 寫。
 寫得越具體、越實用，你的 agent 在對話中越能套用。
@@ -233,7 +231,7 @@ Codex 會反問你問題、生 description、決定結構、跟你討論——**
 1. **針對單一客戶優化**：寫一個只針對 Warren 的策略，看能不能拿到滿分
 2. **多 skill 組合**：建立 5-10 個 skill，看 agent 會不會組合運用
 3. **挑戰排行榜**：去大廳看排行榜，目標把名字推到第一
-4. **6 隻全成交**：跟 6 個客戶都成交一次
+4. **9 隻全成交**：跟全部 9 個客戶都成交一次
 
 ---
 

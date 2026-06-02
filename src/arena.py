@@ -70,26 +70,58 @@ def deduct_budget(customer_id: str, amount: int) -> bool:
     return True
 
 
-def detect_deal(customer_response: str) -> tuple[str, int] | None:
-    """Detect a deal marker in the customer's response.
+def detect_deal(customer_response: str) -> str | None:
+    """Detect a deal intent in the customer's response.
 
-    Tries the primary pattern first ([成交:產品:金額] possibly without closing ]),
-    falls back to the truncated form (no closing bracket, end of string).
-    Both patterns tolerate full-width punctuation and digits with commas.
+    Returns the product name if the customer signalled intent to buy
+    (the LLM's quoted amount is ignored — the final amount is computed
+    from the coach's score at end_session). Returns None if no deal.
     """
     for pattern in (DEAL_PATTERN, DEAL_PATTERN_TRUNCATED):
         match = pattern.search(customer_response)
         if match:
             product = match.group(1).strip()
-            # Strip both half-width and full-width commas before parsing
-            amount_str = match.group(2).replace(",", "").replace("，", "")
-            try:
-                amount = int(amount_str)
-            except ValueError:
-                continue
-            if amount > 0:
-                return product, amount
+            if product:
+                return product
     return None
+
+
+def performance_multiplier(score: int) -> float:
+    """How much the customer adjusts their stated investment based on the
+    salesperson's performance score (0-100).
+
+    90-100 → 1.5-2.0x  (impressed, invests more than first said)
+    70-89  → 1.0-1.3x  (satisfied, sticks to / slightly above stated)
+    50-69  → 0.6-0.9x  (hesitant, invests less than stated)
+    < 50   → 0         (walks away)
+    """
+    if score < 50:
+        return 0.0
+    if score >= 90:
+        return 1.5 + (score - 90) / 10 * 0.5    # 1.5 → 2.0
+    if score >= 70:
+        return 1.0 + (score - 70) / 20 * 0.3    # 1.0 → 1.3
+    return 0.6 + (score - 50) / 20 * 0.3        # 0.6 → 0.9
+
+
+def final_deal_amount(customer_offered: int, score: int, budget: int, default_offer: int) -> tuple[int, float]:
+    """Compute the final deal amount = (customer's stated amount) × performance multiplier.
+
+    - customer_offered: amount the customer named in conversation; -1 if unspecified
+    - score: coach score, drives the multiplier
+    - budget: customer's remaining budget (hard cap)
+    - default_offer: persona fallback when the customer didn't name a figure
+
+    Returns (final_amount, multiplier).
+    """
+    mult = performance_multiplier(score)
+    if mult == 0:
+        return 0, 0.0
+    base = customer_offered if customer_offered and customer_offered > 0 else default_offer
+    amount = int(base * mult)
+    amount = min(amount, budget)               # never exceed remaining budget
+    amount = (amount // 10000) * 10000          # round to nearest 萬
+    return amount, mult
 
 
 def record_deal(

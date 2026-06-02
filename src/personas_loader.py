@@ -22,8 +22,9 @@ def get_all_customers() -> list[dict]:
             "tags": c.get("tags", []),
             "budget": c.get("budget", 0),
             "idle_quotes": c.get("idle_quotes", []),
-            "interests": c.get("interests", []),
-            "chitchat_difficulty": c.get("chitchat_difficulty", "normal"),
+            # New 4-dimension fields surfaced to the dashboard
+            "product_direction_hint": c.get("product_direction_hint", ""),
+            "interest_hook": c.get("interest_hook", ""),
             "background_summary": c["background"].strip()[:120] + "...",
         }
         for c in _personas.values()

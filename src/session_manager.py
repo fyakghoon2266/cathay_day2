@@ -60,6 +60,17 @@ def add_turn(session_id: str, salesperson_msg: str, customer_msg: str) -> dict:
     return data
 
 
+def set_deal_intent(session_id: str, product: str) -> dict:
+    """Flag that the customer signalled intent to buy `product`.
+    The final amount is decided at end_session based on the coach score."""
+    data = get_session(session_id)
+    if data is None:
+        raise ValueError("Session not found or expired")
+    data["deal_intent_product"] = product
+    _redis.setex(f"session:{session_id}", _TTL, json.dumps(data, ensure_ascii=False))
+    return data
+
+
 def end_session(session_id: str) -> dict:
     data = get_session(session_id)
     if data is None:
