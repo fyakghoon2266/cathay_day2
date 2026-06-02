@@ -219,7 +219,7 @@ def end_session(session_id: str) -> str:
     if is_deal:
         budget = get_remaining_budget(session_data["customer_id"])
         default_offer = customer.get("default_offer", 1000000)
-        amount = final_deal_amount(offered, budget, default_offer)
+        amount = final_deal_amount(offered, budget, default_offer, customer.get("budget", budget))
 
         if amount > 0 and deduct_budget(session_data["customer_id"], amount):
             agent_name = session_data.get("agent_name") or validate_key(session_data["api_key"])["name"]
@@ -347,7 +347,7 @@ def run_full_session(
     if is_deal:
         budget = get_remaining_budget(customer_id)
         default_offer = customer.get("default_offer", 1000000)
-        amount = final_deal_amount(offered, budget, default_offer)
+        amount = final_deal_amount(offered, budget, default_offer, customer.get("budget", budget))
         if amount > 0 and deduct_budget(customer_id, amount):
             record_deal(
                 agent_name or user["name"], customer_id, product, amount, session_id,

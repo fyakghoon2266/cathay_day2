@@ -101,19 +101,29 @@ def detect_deal(customer_response: str) -> str | None:
     return None
 
 
-def final_deal_amount(customer_offered: int, budget: int, default_offer: int) -> int:
-    """The deal amount is exactly what the customer said they'd invest.
+# A single deal can never take more than this fraction of the customer's
+# ORIGINAL total wealth — keeps one conversation from draining a customer and
+# stops over-large single closes.
+MAX_DEAL_FRACTION = 0.15
 
-    The customer agent itself decides how much based on satisfaction (see each
-    persona's amount_decision ladder), so there is NO score multiplier — the
-    number is taken at face value, only capped by remaining budget.
 
-    - customer_offered: amount the customer named; -1 if they agreed but gave no figure
-    - budget: remaining budget (hard cap)
-    - default_offer: persona fallback when the customer named no figure
+def final_deal_amount(customer_offered: int, remaining_budget: int,
+                      default_offer: int, total_budget: int) -> int:
+    """The deal amount is what the customer said they'd invest, capped by:
+      (a) 15% of the customer's ORIGINAL total wealth (per-deal ceiling)
+      (b) the customer's remaining budget (can't spend what's gone)
+
+    The customer agent decides the base amount via its amount_decision ladder
+    (no score multiplier). We only clamp and round here.
+
+    - customer_offered: amount the customer named; -1 if agreed but gave no figure
+    - remaining_budget: how much the customer still has (hard cap)
+    - default_offer: persona fallback when no figure was named
+    - total_budget: the customer's original full budget (for the 15% ceiling)
     """
     base = customer_offered if customer_offered and customer_offered > 0 else default_offer
-    amount = min(base, budget)              # never exceed remaining budget
+    per_deal_cap = int(total_budget * MAX_DEAL_FRACTION)
+    amount = min(base, per_deal_cap, remaining_budget)
     amount = (amount // 10000) * 10000       # round to nearest 萬
     return amount
 
