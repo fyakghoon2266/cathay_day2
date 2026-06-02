@@ -439,6 +439,18 @@ async def api_leaderboard(request):
     for entry in lb:
         info = agent_to_team.get(entry["agent"], {})
         entry.update(info)
+
+    # Also show agents who have connected & talked but not closed any deal yet
+    # (so the board isn't empty before the first sale). They appear with $0.
+    on_board = {e["agent"] for e in lb}
+    for agent_name, info in agent_to_team.items():
+        if agent_name and agent_name not in on_board and agent_name != "Unknown":
+            entry = {"agent": agent_name, "total_amount": 0}
+            entry.update(info)
+            lb.append(entry)
+
+    # Keep deal-makers on top (already sorted desc); $0 agents follow
+    lb.sort(key=lambda e: e["total_amount"], reverse=True)
     return JSONResponse(lb)
 
 
