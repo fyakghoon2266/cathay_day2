@@ -1,7 +1,7 @@
 customers:
 - id: taylor
   name: 益豪哥
-  display_name: 風管 益豪哥
+  display_name: 益豪哥
   personality_inspiration: 認真踏實的工程主管（勤奮、有計劃）
   difficulty: easy
   tags:
