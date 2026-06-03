@@ -765,11 +765,17 @@ async function refresh() {
       }
     });
 
-    // Render dogs (one per active session, plus recently ended for fade-out effect)
+    // Render dogs: show ALL active sessions (each is a live conversation), plus
+    // recently-ended ones still in their fade-out. We prioritise active sessions
+    // so a busy park never hides a live dog behind an old/ended one.
     const existingDogs = new Map();
     park.querySelectorAll('.dog-wrapper').forEach(d => existingDogs.set(d.dataset.sid, d));
 
-    const showSessions = sessions.slice(0, 12);
+    const activeSess = sessions.filter(s => s.status === 'active');
+    const endedSess = sessions.filter(s => s.status !== 'active');
+    // All active dogs are drawn; cap the total so an extreme backlog can't lag the
+    // DOM, but keep it well above the event's agent count (≤80 concurrent).
+    const showSessions = activeSess.concat(endedSess).slice(0, 100);
     const newSids = new Set(showSessions.map(s => s.session_id));
 
     // Remove dogs of disappeared sessions

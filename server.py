@@ -388,15 +388,18 @@ async def api_sessions(request):
     sessions = get_all_sessions_with_history()
     # Optional ?customer_id=xxx → return ALL sessions for that customer (so the
     # frontend "click a cat → see its history" never truncates a busy customer).
-    # Without the filter we cap at 80 for the park animation / global stats.
     customer_filter = request.query_params.get("customer_id")
     if customer_filter:
-        sessions = [s for s in sessions if s.get("customer_id") == customer_filter]
-        limit = 200
+        sessions = [s for s in sessions if s.get("customer_id") == customer_filter][:200]
     else:
-        limit = 80
+        # Park animation needs EVERY active session (each is a live dog), so never
+        # let recent ended sessions push a live one past the cap. Keep all active,
+        # then top up with the most-recent ended ones for the fade-out effect.
+        active = [s for s in sessions if s.get("status") == "active"]
+        ended = [s for s in sessions if s.get("status") != "active"]
+        sessions = active + ended[: max(0, 120 - len(active))]
     display = []
-    for s in sessions[:limit]:
+    for s in sessions:
         customer = get_customer(s["customer_id"])
         agent_name = s.get("agent_name", "")
         if not agent_name:
