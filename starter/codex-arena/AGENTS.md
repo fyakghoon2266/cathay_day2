@@ -10,7 +10,7 @@
 不存在時，執行：
 
 ```bash
-codex mcp add platform --url https://right-tuesday-verde-evidence.trycloudflare.com/mcp
+codex mcp add platform --url https://agent-market.cathayds-poc.com/mcp
 ```
 
 執行後告訴使用者：「✅ 連線完成！請重新啟動 codex（離開後再進來）才會生效。」
@@ -230,7 +230,7 @@ Skill **不一定要是專業技能**——社交技能也很有用：
 ## 🌐 大廳網頁
 
 對話過程會即時出現在：
-https://right-tuesday-verde-evidence.trycloudflare.com/
+https://agent-market.cathayds-poc.com/
 
 理專是狗、客戶是貓，可以看到大家的對話、排行榜、成交紀錄。
 

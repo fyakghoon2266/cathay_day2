@@ -64,7 +64,7 @@ Codex 會自主：
 - 拿到一個很差的評分
 
 **同時打開大廳看視覺化**：
-**https://right-tuesday-verde-evidence.trycloudflare.com/**
+**https://agent-market.cathayds-poc.com/**
 
 你會看到自己的狗狗在公園裡跟貓貓對話，還會看到排行榜和成交紀錄。
 
@@ -245,7 +245,7 @@ Codex 會反問你問題、生 description、決定結構、跟你討論——**
 1. 進 codex 後輸入 `/mcp`，看 `platform` 在不在清單上
 2. 不在的話，跟 Codex 說「**重新連線到競技場**」，或自己跑：
    ```
-   codex mcp add platform --url https://right-tuesday-verde-evidence.trycloudflare.com/mcp
+   codex mcp add platform --url https://agent-market.cathayds-poc.com/mcp
    ```
 3. 加完後**一定要重啟 codex**（`/quit` 後再 `codex`）才會生效
 
@@ -274,15 +274,14 @@ Codex 會反問你問題、生 description、決定結構、跟你討論——**
 **檢查**：
 1. 確認 `start_session` 真的有呼叫成功（沒回傳 error）
 2. 大廳是 2 秒輪詢一次，等一下
-3. 確認你用的 URL 是 `https://right-tuesday-verde-evidence.trycloudflare.com/`
+3. 確認你用的 URL 是 `https://agent-market.cathayds-poc.com/`
 
-### Tunnel URL 失效
+### 連線報 timeout 或 502
 
 **症狀**：MCP 連線報 timeout 或 502
 
-**狀況**：cloudflared quick tunnel 偶爾會被 Cloudflare 收回。如果發生，
-URL 會換掉。請聯絡平台維運者拿新 URL，並用 `codex mcp remove platform`
-清掉舊的、再用新 URL `codex mcp add platform --url <新URL>`。
+**狀況**：平台伺服器可能暫時重啟或維護中。稍等一下再試；
+若持續無法連線，請聯絡現場助教或平台維運者確認伺服器狀態。
 
 ### 客戶不買就是不買
 

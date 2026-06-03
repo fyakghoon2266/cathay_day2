@@ -57,10 +57,10 @@ codex-server/
 ### B. 對外服務 URL
 
 ```
-MCP server：    https://right-tuesday-verde-evidence.trycloudflare.com/mcp
-大廳網頁：      https://right-tuesday-verde-evidence.trycloudflare.com/
-下載 zip：      https://right-tuesday-verde-evidence.trycloudflare.com/download/codex-arena.zip
-下載 tar.gz：   https://right-tuesday-verde-evidence.trycloudflare.com/download/codex-arena.tar.gz
+MCP server：    https://agent-market.cathayds-poc.com/mcp
+大廳網頁：      https://agent-market.cathayds-poc.com/
+下載 zip：      https://agent-market.cathayds-poc.com/download/codex-arena.zip
+下載 tar.gz：   https://agent-market.cathayds-poc.com/download/codex-arena.tar.gz
 ```
 
 ### C. 使用者拿到的 starter pack
