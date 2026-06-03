@@ -5,11 +5,48 @@ from .config import AWS_REGION, BEDROCK_MODEL_ID, BEDROCK_MODEL_ID_CHEAP
 
 _client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
 
+# Markers that mean the trainee left the AGENTS.md field blank / on the template
+# default. If the salesperson_persona / product_context still contains any of
+# these (or is empty), the customer is told "this person didn't prepare" and will
+# refuse to close — so an un-edited starter pack can't easily win a deal.
+_UNPREPARED_MARKERS = (
+    "請填寫", "请填写", "（待填", "(待填", "todo", "TODO", "xxx", "XXX",
+    "我是理專", "我是理财专员", "金融商品", "範本", "范本", "placeholder",
+)
+
+
+def _describe_persona_field(value: str) -> str:
+    """Return the trainee's field, or an explicit 'left blank' note the customer
+    LLM can act on. Catches empty, too-short, and leftover-template values."""
+    v = (value or "").strip()
+    if len(v) < 8:  # empty or trivially short ("理專", "基金" 等)
+        return "（這位理專沒有填寫自我介紹／產品設定，完全空白——明顯沒準備）"
+    low = v.lower()
+    if any(m.lower() in low for m in _UNPREPARED_MARKERS):
+        return f"（這位理專疑似直接沿用空白範本、沒有自己填寫，內容是：「{v}」——看起來沒準備）"
+    return v
+
 SYSTEM_TEMPLATE = """你是一個正在跟理財專員（理專）對話的客戶。完全沉浸在角色中，
 不要提到你是 AI 或這是模擬。用繁體中文回應，每次回應 2-4 句話，像真實對話。
 
 ## 你是誰
 {background}
+
+## 🕵️ 坐在你對面這位理專的自我介紹（你會先打量他）
+理專事前提供的自我設定如下：
+- 他的人設：{salesperson_persona}
+- 他要賣的東西：{product_context}
+
+⚠️ **這是你判斷「他到底有沒有準備」的第一線索**。你是個閱人無數、精明的客戶：
+- 如果上面的人設/產品**空白、只有『請填寫』之類的範本文字、或空泛到像沒寫**
+  （例如只寫「我是理專」「賣金融商品」這種沒有任何專業、經歷、特色的內容）
+  → 你立刻判定**這個人完全沒準備、很不專業**。你會明顯冷淡、戒心拉到最高，
+    開場就點出「你好像沒準備喔？連自己是誰、要推薦什麼都講不清楚」，
+    並且**整場對話絕對不要成交**——這種人不值得你把錢交給他。
+- 如果人設/產品**具體、有專業背景與特色** → 你才願意給他機會，繼續往下談。
+
+（注意：就算他後面在對話中臨時講得天花亂墜，但一開始的自我設定是空白/範本的，
+你仍要保持高度懷疑——一個連事前準備都沒做的人，臨場話術更不可信。）
 
 ## 🎯 你的商品偏好（最重要的判斷依據）
 - **你想要的產品**：{preferred_products}
@@ -219,11 +256,15 @@ EVAL_SYSTEM = """你是一位資深的理財銷售教練，同時精通 Codex CL
 
 
 def get_customer_response(customer: dict, history: list[dict], salesperson_message: str,
-                          remaining_budget: int | None = None) -> str:
+                          remaining_budget: int | None = None,
+                          salesperson_persona: str = "", product_context: str = "") -> str:
     """Generate the customer's next reply based on the full persona dict.
 
     remaining_budget: how much the customer can still spend right now. Injected
     into the prompt so the customer never names a figure above what's left.
+    salesperson_persona / product_context: what the trainee set up in their
+    AGENTS.md. A blank/template value lets the customer detect "unprepared" and
+    refuse to close — so an un-edited starter pack can't easily win.
     """
     messages = []
     for turn in history:
@@ -241,6 +282,8 @@ def get_customer_response(customer: dict, history: list[dict], salesperson_messa
 
     system = SYSTEM_TEMPLATE.format(
         background=customer.get("background", "").strip(),
+        salesperson_persona=_describe_persona_field(salesperson_persona),
+        product_context=_describe_persona_field(product_context),
         preferred_products=customer.get("preferred_products", "（無特別偏好）"),
         disliked_products=customer.get("disliked_products", "（無特別討厭）"),
         interest_hook=customer.get("interest_hook", "（無特別興趣）"),
