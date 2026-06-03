@@ -112,30 +112,24 @@ def detect_deal(customer_response: str) -> str | None:
     return None
 
 
-# A single deal can never take more than this fraction of the customer's
-# ORIGINAL total wealth — keeps one conversation from draining a customer and
-# stops over-large single closes.
-MAX_DEAL_FRACTION = 0.15
-
-
 def final_deal_amount(customer_offered: int, remaining_budget: int,
-                      default_offer: int, total_budget: int) -> int:
-    """The deal amount is what the customer said they'd invest, capped by:
-      (a) 15% of the customer's ORIGINAL total wealth (per-deal ceiling)
-      (b) the customer's remaining budget (can't spend what's gone)
+                      default_offer: int, total_budget: int = 0) -> int:
+    """The deal amount is EXACTLY what the customer said they'd invest.
 
-    The customer agent decides the base amount via its amount_decision ladder
-    (no score multiplier). We only clamp and round here.
+    No program-side cap on the amount — the 15%-of-wealth limit is enforced in
+    each persona's prompt (the customer LLM simply won't name a figure above
+    15%), so the conversation and the recorded deal always match. The only
+    clamp here is the remaining budget, which is a physical necessity to avoid
+    deducting below zero (not an experience cap).
 
-    - customer_offered: amount the customer named; -1 if agreed but gave no figure
-    - remaining_budget: how much the customer still has (hard cap)
+    - customer_offered: amount the customer named; -1/0 if no figure given
+    - remaining_budget: how much the customer still has (hard cap, physical)
     - default_offer: persona fallback when no figure was named
-    - total_budget: the customer's original full budget (for the 15% ceiling)
+    - total_budget: unused now (kept for signature compatibility)
     """
     base = customer_offered if customer_offered and customer_offered > 0 else default_offer
-    per_deal_cap = int(total_budget * MAX_DEAL_FRACTION)
-    amount = min(base, per_deal_cap, remaining_budget)
-    amount = (amount // 10000) * 10000       # round to nearest 萬
+    amount = min(base, remaining_budget)     # only physical cap: can't exceed what's left
+    amount = (amount // 10000) * 10000        # round to nearest 萬
     return amount
 
 
