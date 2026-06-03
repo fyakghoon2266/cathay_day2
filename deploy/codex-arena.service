@@ -1,0 +1,17 @@
+[Unit]
+Description=Codex Sales Arena MCP Server
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/codex-server
+ExecStart=/home/ubuntu/codex-server/.venv/bin/python /home/ubuntu/codex-server/server.py
+Restart=always
+RestartSec=3
+StandardOutput=append:/home/ubuntu/codex-server/server.log
+StandardError=append:/home/ubuntu/codex-server/server.log
+
+[Install]
+WantedBy=multi-user.target
