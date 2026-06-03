@@ -149,6 +149,14 @@ EVAL_SYSTEM = """你是一位資深的理財銷售教練，同時精通 Codex CL
 會問的個人問題：{personal_question}
 性格地雷：{personality_landmine}
 
+## 這位理專事前的準備（AGENTS.md 設定）
+- 他的人設：{salesperson_persona}
+- 他要賣的東西：{product_context}
+
+⚠️ 如果上面顯示理專的人設/產品是**空白或範本預設值（沒準備）**：
+這是一個完全沒準備的理專，分數應給極低（20 分以下），且**判定未成交**——
+沒準備的人不該談成生意，這是這場練習的核心教學點。
+
 ## ⚖️ 評分原則（極度重要：嚴格、有憑有據，不要隨便給高分）
 - **預設從低分起評**，每一分都要有對話中的「具體證據」才能給。
 - **不能因為理專『態度好、很客氣、講得頭頭是道、會講感人故事』就給高分** —— 要看他有沒有「真的命中這個客戶的需求、給出對的專業判斷」。
@@ -318,12 +326,30 @@ _DEAL_PRODUCT_PATTERN = re.compile(r"成交產品[:：]\s*(.+)")
 _DEAL_AMOUNT_PATTERN = re.compile(r"客戶投入金額[:：]\s*([\d,，]+|未指定)")
 
 
-def evaluate_session(customer: dict, history: list[dict]) -> tuple[str, int, bool, str, int]:
+def is_persona_unprepared(salesperson_persona: str, product_context: str) -> bool:
+    """True if BOTH the persona and product look blank/template (trainee didn't
+    edit AGENTS.md). Used as a hard gate: an unprepared salesperson can never
+    close a deal, no matter what the LLMs say in conversation."""
+    def _blank(v: str) -> bool:
+        s = (v or "").strip()
+        if len(s) < 8:
+            return True
+        low = s.lower()
+        return any(m.lower() in low for m in _UNPREPARED_MARKERS)
+    return _blank(salesperson_persona) and _blank(product_context)
+
+
+def evaluate_session(customer: dict, history: list[dict],
+                     salesperson_persona: str = "", product_context: str = "") -> tuple[str, int, bool, str, int]:
     """Return (evaluation_text, score, is_deal, product_name, customer_offered_amount).
 
     The deal verdict, product, and the amount the customer offered are all judged
     by the coach LLM. customer_offered_amount is -1 if the customer agreed but
     didn't name a figure (caller should fall back to a persona default).
+
+    Hard gate: if the trainee left their AGENTS.md persona/product blank, we force
+    未成交 + a low score regardless of what was said — an unprepared advisor must
+    never close, which is the whole teaching point.
     """
     conversation_text = ""
     for turn in history:
@@ -337,6 +363,8 @@ def evaluate_session(customer: dict, history: list[dict]) -> tuple[str, int, boo
         interest_hook=customer.get("interest_hook", ""),
         personal_question=customer.get("personal_question", ""),
         personality_landmine=customer.get("personality_landmine", ""),
+        salesperson_persona=_describe_persona_field(salesperson_persona),
+        product_context=_describe_persona_field(product_context),
     )
 
     body = json.dumps({
@@ -385,5 +413,17 @@ def evaluate_session(customer: dict, history: list[dict]) -> tuple[str, int, boo
                     offered_amount = -1
         else:
             offered_amount = -1
+
+    # Hard gate: an unprepared advisor (blank/template AGENTS.md) can NEVER close,
+    # no matter how the conversation went. Override any 成交 the LLM may have given.
+    if is_persona_unprepared(salesperson_persona, product_context):
+        is_deal = False
+        product = ""
+        offered_amount = 0
+        score = min(score, 20)
+        text += ("\n\n---\n⚠️ **系統判定：未成交（理專未準備）**\n"
+                 "你的 AGENTS.md「我的人設／我要賣的產品」是空白或範本預設值，"
+                 "客戶不可能把錢交給一個沒準備的理專。請先填好你的人設與產品再來練習——"
+                 "這正是這場練習的核心：先學會配置你的 Codex agent。")
 
     return text, score, is_deal, product, offered_amount

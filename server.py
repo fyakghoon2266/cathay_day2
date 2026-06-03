@@ -216,6 +216,8 @@ def end_session(session_id: str) -> str:
     evaluation, score, is_deal, product, offered = evaluate_session(
         customer=customer,
         history=session_data["history"],
+        salesperson_persona=session_data.get("salesperson_persona", ""),
+        product_context=session_data.get("product_context", ""),
     )
 
     # Coach LLM judges deal + extracts the amount the customer chose to invest.
@@ -348,7 +350,9 @@ def run_full_session(
 
         customer_message = customer_response
 
-    evaluation, score, is_deal, product, offered = evaluate_session(customer=customer, history=history)
+    evaluation, score, is_deal, product, offered = evaluate_session(
+        customer=customer, history=history,
+        salesperson_persona=salesperson_persona, product_context=product_context)
 
     # Coach LLM judges deal + extracts stated amount; final = stated × multiplier
     deals_made: list[dict] = []
