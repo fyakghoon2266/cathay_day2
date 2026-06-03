@@ -172,6 +172,7 @@ def send_message(session_id: str, message: str) -> str:
         customer=customer,
         history=session_data["history"],
         salesperson_message=message,
+        remaining_budget=get_remaining_budget(session_data["customer_id"]),
     )
 
     updated = add_turn(session_id, message, customer_response)
@@ -329,6 +330,7 @@ def run_full_session(
             customer=customer,
             history=history,
             salesperson_message=salesperson_response,
+            remaining_budget=get_remaining_budget(customer_id),
         )
 
         turn = {"salesperson": salesperson_response, "customer": customer_response}
