@@ -196,7 +196,7 @@ h1 { text-align: center; margin-bottom: 4px; font-size: 1.6em; color: #1a3d5c; }
 .deal-amount { color: #047857; font-weight: bold; }
 .deal-time { font-size: 0.75em; color: #71767b; }
 
-.chat-panel { max-height: 480px; }
+.chat-panel { max-height: 650px; }
 .chat-empty { text-align: center; color: #71767b; padding: 20px; font-size: 0.9em; }
 .chat-header { font-weight: bold; padding: 8px; border-bottom: 1px solid #ddd; margin-bottom: 8px; font-size: 0.95em; }
 .msg { margin-bottom: 6px; padding: 6px 10px; border-radius: 8px; font-size: 0.85em; line-height: 1.5; }
@@ -205,15 +205,24 @@ h1 { text-align: center; margin-bottom: 4px; font-size: 1.6em; color: #1a3d5c; }
 .msg-label { font-size: 0.75em; font-weight: bold; margin-bottom: 2px; }
 
 .budget-dashboard {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  flex-wrap: nowrap;            /* single horizontal row */
+  overflow-x: auto;             /* 滑框：橫向捲動 */
+  overflow-y: hidden;
   gap: 8px;
   max-width: 1400px;
-  margin: 0 auto 12px;
-  padding: 0 16px;
+  margin: 0 auto 10px;
+  padding: 2px 16px 10px;       /* bottom pad leaves room for scrollbar */
+  justify-content: flex-start;  /* 往左對齊 */
+  scrollbar-width: thin;
+  scrollbar-color: #355a7a rgba(255,255,255,0.4);
 }
-@media (max-width: 900px) { .budget-dashboard { grid-template-columns: repeat(3, 1fr); } }
+.budget-dashboard::-webkit-scrollbar { height: 8px; }
+.budget-dashboard::-webkit-scrollbar-track { background: rgba(255,255,255,0.4); border-radius: 4px; }
+.budget-dashboard::-webkit-scrollbar-thumb { background: #355a7a; border-radius: 4px; }
 .bd-card {
+  flex: 0 0 auto;               /* fixed width, don't shrink — enables scrolling */
+  width: 165px;
   background: rgba(255,255,255,0.9);
   border-radius: 10px;
   padding: 8px 12px;
