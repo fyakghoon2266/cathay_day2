@@ -9,9 +9,19 @@ _client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
 # default. If the salesperson_persona / product_context still contains any of
 # these (or is empty), the customer is told "this person didn't prepare" and will
 # refuse to close — so an un-edited starter pack can't easily win a deal.
+#
+# Real Codex tends to *paraphrase* the blank template into a polite sentence
+# (e.g. "尚未設定完整人設的新手理財專員", "人設尚未完整設定") instead of sending the
+# raw "（請填寫…）" text, so we also catch those self-admitted-unprepared phrasings.
 _UNPREPARED_MARKERS = (
+    # raw template leftovers
     "請填寫", "请填写", "（待填", "(待填", "todo", "TODO", "xxx", "XXX",
     "我是理專", "我是理财专员", "金融商品", "範本", "范本", "placeholder",
+    # paraphrased "not set up yet" admissions (Codex rewrites the blank template)
+    "尚未設定", "尚未设定", "還沒設定", "还没设定", "未設定", "未设定",
+    "尚未完整", "還沒填", "还没填", "未完整設定", "未填寫", "未填写",
+    "人設尚未", "人设尚未", "目前人設", "目前人设", "暫無設定", "暂无设定",
+    "尚未建立", "還沒建立", "待設定", "待补充", "待補充", "預設人設", "预设人设",
 )
 
 
