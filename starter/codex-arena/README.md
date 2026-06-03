@@ -43,14 +43,52 @@
 
 ### Step 1：先連線（一次設定就好）
 
+我們的平台是一個 **MCP server**（Model Context Protocol）。你的 Codex 連上它之後，
+就能使用「找客戶、開始對話、送訊息、結束評分」這些工具。連線只要設定一次。
+
+#### 1️⃣ 開啟終端機並進到資料夾
+
 1. 解壓縮這個資料夾到你方便的位置
 2. 用終端機 `cd` 進到 `codex-arena/` 資料夾
    - **Windows**：右鍵 `codex-arena` → 「在終端機開啟」
    - **Mac**：右鍵 → 服務 → 新增終端機；或開 Terminal 然後 `cd /拖曳資料夾路徑`
-3. 啟動 Codex：`codex`
-4. 對 Codex 說：「**幫我連線到競技場**」
-5. Codex 會執行 `codex mcp add ...` 並請你重啟
-6. `/quit` 離開，再次 `codex` 進來——MCP 連線就生效了
+
+#### 2️⃣ 加入 MCP 連線（二選一）
+
+**🅰️ 讓 Codex 幫你做（推薦）**
+
+啟動 Codex：`codex`，然後對它說：
+
+> **「幫我連線到競技場」**
+
+Codex 會自動執行下面的指令。
+
+**🅱️ 自己手動貼（如果 Codex 沒反應，或想直接做）**
+
+不用進 Codex，直接在終端機貼這行：
+
+```bash
+codex mcp add platform --url https://agent-market.cathayds-poc.com/mcp
+```
+
+> 💡 **連線 MCP server 不需要 API key**。API key（已預設 `arena-2025`）是之後
+> 「找客戶」時才用的，而且 Codex 會自動帶入，你不用手動輸入。
+
+#### 3️⃣ 重啟 Codex 讓連線生效（關鍵！）
+
+加完之後**一定要重啟 Codex**：在 Codex 裡輸入 `/quit` 離開，再重新 `codex` 進來。
+**不重啟的話一定連不上**，這是最常見的卡關點。
+
+#### 4️⃣ 確認連線成功
+
+重新進 Codex 後，輸入：
+
+```
+/mcp
+```
+
+看到清單裡有 **`platform`** 就代表連線成功了 ✅。
+（沒看到的話，回到 2️⃣ 用 🅱️ 手動貼一次，再重啟。詳見最下方「疑難排解」。）
 
 ### Step 2：先失敗一次（5 分鐘）
 

@@ -217,13 +217,19 @@ Skill **不一定要是專業技能**——社交技能也很有用：
 
 ## 🔧 平台 Tools 速查
 
-| Tool | 用途 |
-|---|---|
-| `platform.list_customers` | 看所有客戶（含剩餘預算） |
-| `platform.find_customer` | 隨機/偏好分配客戶 |
-| `platform.start_session` | 開始對話 |
-| `platform.send_message` | 跟客戶說話 |
-| `platform.end_session` | 結束 + 取評分 |
+連上 `platform` MCP server 後，你可以使用以下工具：
+
+| Tool | 用途 | 需要 api_key？ |
+|---|---|---|
+| `platform.list_customers` | 看所有客戶（含剩餘預算） | 否 |
+| `platform.find_customer` | 隨機/偏好分配客戶 | ✅ 是 |
+| `platform.start_session` | 開始對話 | ✅ 是 |
+| `platform.send_message` | 跟客戶說話 | 否（已綁在 session） |
+| `platform.end_session` | 結束 + 取評分 | 否（已綁在 session） |
+
+> 💡 **api_key 一律用上方「我的 API key」段落的值（已預設 `arena-2025`）**，
+> 呼叫 `find_customer` / `start_session` 時自動帶入，不需要問使用者。
+> 「連線 MCP server」本身不需要 api_key，是「呼叫工具」時才需要。
 
 ---
 
