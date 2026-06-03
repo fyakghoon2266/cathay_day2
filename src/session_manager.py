@@ -37,6 +37,9 @@ def create_session(
         "status": "active",
     }
     _redis.setex(f"session:{session_id}", _TTL, json.dumps(data, ensure_ascii=False))
+    # Index by created_at so listing never needs a blocking `KEYS session:*` scan.
+    # (Ended/expired entries are pruned lazily on read in arena.get_all_sessions.)
+    _redis.zadd("session_index", {session_id: data["created_at"]})
     return session_id
 
 

@@ -199,24 +199,32 @@ def get_recent_deals(count: int = 20) -> list[dict]:
     return [json.loads(d) for d in raw]
 
 
-def get_active_sessions() -> list[dict]:
-    keys = _redis.keys("session:*")
+def _load_sessions_via_index() -> list[dict]:
+    """Load all live sessions using the `session_index` sorted set (newest first).
+
+    Avoids the blocking `KEYS session:*` scan and batches the reads with MGET, so
+    cost scales with *live* sessions, not total keyspace. Session ids whose
+    `session:<id>` key has expired/been deleted are pruned from the index lazily.
+    """
+    ids = _redis.zrevrange("session_index", 0, -1)  # newest → oldest
+    if not ids:
+        return []
+    raws = _redis.mget([f"session:{sid}" for sid in ids])
     sessions = []
-    for key in keys:
-        raw = _redis.get(key)
-        if raw:
-            data = json.loads(raw)
-            if data.get("status") == "active":
-                sessions.append(data)
-    return sessions
+    stale = []
+    for sid, raw in zip(ids, raws):
+        if raw is None:
+            stale.append(sid)          # key gone (TTL expired) → drop from index
+        else:
+            sessions.append(json.loads(raw))
+    if stale:
+        _redis.zrem("session_index", *stale)
+    return sessions  # already newest-first from zrevrange
+
+
+def get_active_sessions() -> list[dict]:
+    return [s for s in _load_sessions_via_index() if s.get("status") == "active"]
 
 
 def get_all_sessions_with_history() -> list[dict]:
-    keys = _redis.keys("session:*")
-    sessions = []
-    for key in keys:
-        raw = _redis.get(key)
-        if raw:
-            sessions.append(json.loads(raw))
-    sessions.sort(key=lambda s: s.get("created_at", 0), reverse=True)
-    return sessions
+    return _load_sessions_via_index()
