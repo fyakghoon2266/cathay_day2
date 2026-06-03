@@ -386,8 +386,17 @@ def run_full_session(
 
 async def api_sessions(request):
     sessions = get_all_sessions_with_history()
+    # Optional ?customer_id=xxx → return ALL sessions for that customer (so the
+    # frontend "click a cat → see its history" never truncates a busy customer).
+    # Without the filter we cap at 80 for the park animation / global stats.
+    customer_filter = request.query_params.get("customer_id")
+    if customer_filter:
+        sessions = [s for s in sessions if s.get("customer_id") == customer_filter]
+        limit = 200
+    else:
+        limit = 80
     display = []
-    for s in sessions[:50]:
+    for s in sessions[:limit]:
         customer = get_customer(s["customer_id"])
         agent_name = s.get("agent_name", "")
         if not agent_name:

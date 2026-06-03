@@ -435,26 +435,51 @@ function showIdleQuotes() {
   });
 }
 
-function selectByCustomer(customerId) {
-  if (!window._lastSessions) return;
-  const matches = window._lastSessions.filter(s => s.customer_id === customerId);
+async function selectByCustomer(customerId) {
+  // Fetch ALL sessions for this customer directly (the global /api/sessions list
+  // is capped for the park animation, so a busy customer's older sessions —
+  // including closed deals — would otherwise be missing here).
+  let matches = [];
+  try {
+    const res = await fetch('/api/sessions?customer_id=' + encodeURIComponent(customerId));
+    matches = await res.json();
+  } catch (e) {
+    // Fallback to whatever the last global poll had
+    matches = (window._lastSessions || []).filter(s => s.customer_id === customerId);
+  }
+  // Merge into the lookup cache so renderChat() can find these sessions by id
+  window._sessionCache = window._sessionCache || {};
+  matches.forEach(s => { window._sessionCache[s.session_id] = s; });
+
   if (matches.length === 0) {
     // No sessions yet — show a friendly message
     state.selectedSession = null;
+    state.selectedCustomerForList = null;
     state.selectedCustomerNoSession = customerId;
     renderChat();
     return;
   }
-  // Multiple sessions: show a session picker
+  // Multiple sessions: show a session picker (matches are newest-first from server)
+  state.selectedCustomerNoSession = null;
   state.selectedCustomerForList = customerId;
+  state.customerSessions = matches;            // full list for the picker
   state.selectedSession = matches[0].session_id;  // default to most recent
   renderChat();
 }
 
 function selectSession(sid) {
+  // Clicking a specific dog in the park: make sure this session is resolvable by
+  // renderChat even if it's only in the global poll list.
+  const globalList = window._lastSessions || [];
+  const found = globalList.find(x => x.session_id === sid);
+  if (found) {
+    window._sessionCache = window._sessionCache || {};
+    window._sessionCache[sid] = found;
+  }
   state.selectedSession = sid;
   state.selectedCustomerForList = null;
   state.selectedCustomerNoSession = null;
+  state.customerSessions = null;
   renderChat();
 }
 
@@ -530,7 +555,12 @@ function buildInterestCard(customerId) {
 }
 
 function renderChat() {
-  const sessions = window._lastSessions || [];
+  // Look up a session by id across: the per-customer fetch cache (full history),
+  // and the global poll list (park animation). Cache wins so a busy customer's
+  // older deals are never missing.
+  const cache = window._sessionCache || {};
+  const globalList = window._lastSessions || [];
+  const findSession = (id) => cache[id] || globalList.find(x => x.session_id === id);
   const sid = state.selectedSession;
   const chatEl = document.getElementById('chat-content');
 
@@ -550,7 +580,7 @@ function renderChat() {
     return;
   }
 
-  const s = sessions.find(x => x.session_id === sid);
+  const s = findSession(sid);
   if (!s) {
     chatEl.innerHTML = '<div class="chat-empty">對話已過期或不存在</div>';
     return;
@@ -559,7 +589,8 @@ function renderChat() {
   // Build session picker if there are multiple sessions for this customer
   let pickerHTML = '';
   if (state.selectedCustomerForList) {
-    const customerSessions = sessions.filter(x => x.customer_id === state.selectedCustomerForList);
+    const customerSessions = state.customerSessions
+      || globalList.filter(x => x.customer_id === state.selectedCustomerForList);
     if (customerSessions.length > 1) {
       pickerHTML = `
         <div style="font-size:0.8em;color:#355a7a;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,0.7);border-radius:8px">
