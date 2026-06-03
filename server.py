@@ -187,8 +187,10 @@ def send_message(session_id: str, message: str) -> str:
     # nudge the salesperson to wrap up. Final deal verdict is judged by the coach
     # LLM at end_session, so this is just an in-conversation hint.
     if detect_deal(customer_response):
-        result["hint"] = (f"💡 {customer['display_name']} 似乎有購買意願了！"
-                          f"可以呼叫 end_session 結算——成交與否、金額多少由你的表現分數決定。")
+        result["hint"] = (f"💡 {customer['display_name']} 出現鬆動跡象。"
+                          f"是否真的成交、金額多少，最終由 end_session 的教練評估認定"
+                          f"（客戶若只是「之後再談／分期／附條件」不算當下成交）。"
+                          f"覺得談到位了就呼叫 end_session 結算。")
 
     return json.dumps(result, ensure_ascii=False, indent=2)
 
