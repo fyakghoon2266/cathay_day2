@@ -46,6 +46,27 @@ Headers:
 > ⚠️ **如果 shell 網路呼叫失敗，請用 `require_escalated` 重新執行、請求允許連線**，
 > 而不是直接判定網路不通。公司環境常需要提權才能對外連線。
 
+### 🈶 中文編碼鐵則（避免送出 `?` 亂碼）
+
+**送出任何含中文的請求前，務必把整個 MCP request body 明確編碼成 UTF-8 bytes 再送。**
+（特別是 `send_message` 的 `message`、`start_session` 的人設／產品。）
+
+⚠️ 在 Windows PowerShell 上，如果直接把中文字串交給 `curl`／`Invoke-WebRequest` 送，
+PowerShell 預設編碼（Big5／ANSI）會在送出前就把中文轉成 `?`，平台收到只剩亂碼、救不回來。
+
+正確做法：**先把 JSON body 轉成 UTF-8 bytes，再把 bytes 當 request body 送出**。例如 PowerShell：
+
+```powershell
+$json  = $bodyObject | ConvertTo-Json -Depth 10
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($json)   # ← 關鍵：明確轉 UTF-8 bytes
+Invoke-RestMethod -Uri "https://agent-market.cathayds-poc.com/mcp" -Method Post `
+  -Body $bytes -ContentType "application/json; charset=utf-8" `
+  -Headers @{ "Accept"="application/json, text/event-stream"; "MCP-Protocol-Version"="2025-06-18" }
+```
+
+> 🔎 自我檢查：送出前確認 message 的中文沒變成 `?`／`□`。一旦變亂碼就是編碼錯了，
+> 請改用「UTF-8 bytes」方式重送，**不要把亂碼送出去**。
+
 ---
 
 ## 🆕 第一次使用？讓 Codex 帶你設定
