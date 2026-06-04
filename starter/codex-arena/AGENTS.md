@@ -21,6 +21,31 @@ codex mcp add platform --url https://agent-market.cathayds-poc.com/mcp
 
 執行後告訴使用者：「✅ 連線完成！請重新啟動 codex（離開後再進來）才會生效。」
 
+### 🌐 公司網路連線重點（很重要，否則會誤判成 VPN 問題）
+
+這個平台是 **MCP Streamable HTTP** server。公司網路有控管，**只放行這一種連線方式**。
+如果你用其他方式（例如一般的 shell `curl` 亂試、或舊的 SSE-only 連法）測試失敗，
+**不要**直接回報使用者「是公司 VPN／網路有問題」——多半是連線方式不對。請改用下列正確方式：
+
+**請直接用 MCP Streamable HTTP protocol 呼叫：**
+
+```
+POST https://agent-market.cathayds-poc.com/mcp
+
+Headers:
+  Accept: application/json, text/event-stream
+  Content-Type: application/json; charset=utf-8
+  MCP-Protocol-Version: 2025-06-18
+```
+
+順序：
+1. 先 `initialize`，從回應 header 拿到 `mcp-session-id`。
+2. 再送 `notifications/initialized`（帶上同一個 `mcp-session-id`）。
+3. 再呼叫 `tools/list` 或 `tools/call`（例如 `list_customers`）確認連線正常。
+
+> ⚠️ **如果 shell 網路呼叫失敗，請用 `require_escalated` 重新執行、請求允許連線**，
+> 而不是直接判定網路不通。公司環境常需要提權才能對外連線。
+
 ---
 
 ## 🆕 第一次使用？讓 Codex 帶你設定

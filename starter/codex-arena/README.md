@@ -321,6 +321,23 @@ Codex 會反問你問題、生 description、決定結構、跟你討論——**
 **狀況**：平台伺服器可能暫時重啟或維護中。稍等一下再試；
 若持續無法連線，請聯絡現場助教或平台維運者確認伺服器狀態。
 
+### Codex 說「是公司 VPN／網路問題」連不上
+
+**症狀**：Codex 測試連線後回報「公司網路擋住了」「可能是 VPN 問題」。
+
+**狀況**：公司網路有控管，**只放行 MCP Streamable HTTP 這一種連線方式**。
+Codex 如果用其他方式亂試（一般 curl、舊的 SSE 連法）會失敗，然後**誤判**成網路問題。
+
+**解法**：把下面這段**直接貼給 Codex**，請它照這個方式連：
+
+> 請直接用 MCP Streamable HTTP protocol 呼叫：
+> `POST https://agent-market.cathayds-poc.com/mcp`
+> Headers：`Accept: application/json, text/event-stream`、
+> `Content-Type: application/json; charset=utf-8`、`MCP-Protocol-Version: 2025-06-18`。
+> 先 initialize 拿 mcp-session-id，再送 notifications/initialized，
+> 再呼叫 tools/list 或 tools/call list_customers。
+> 如果 shell 網路失敗，請用 require_escalated 重新執行、請求允許連線。
+
 ### 客戶不買就是不買
 
 這是設計好的。客戶都是「高難度」設定。需要：
