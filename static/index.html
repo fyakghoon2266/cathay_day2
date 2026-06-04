@@ -563,7 +563,7 @@ function buildInterestCard(customerId) {
   `;
 }
 
-function renderChat() {
+function renderChat(opts = {}) {
   // Look up a session by id across: the per-customer fetch cache (full history),
   // and the global poll list (park animation). Cache wins so a busy customer's
   // older deals are never missing.
@@ -572,6 +572,24 @@ function renderChat() {
   const findSession = (id) => cache[id] || globalList.find(x => x.session_id === id);
   const sid = state.selectedSession;
   const chatEl = document.getElementById('chat-content');
+
+  // When called from the 2s poll (opts.fromPoll), skip the costly innerHTML rebuild
+  // if nothing the user is looking at actually changed — avoids flicker, keeps text
+  // selection, and lets the user scroll up without being yanked back to the bottom.
+  if (opts.fromPoll) {
+    const cur = findSession(sid);
+    const sig = JSON.stringify({
+      sid,
+      list: state.selectedCustomerForList || null,
+      noSess: state.selectedCustomerNoSession || null,
+      turns: cur ? (cur.history || []).length : 0,
+      status: cur ? cur.status : null,
+    });
+    if (sig === window._lastChatSig) return;  // nothing new → don't touch the DOM
+    window._lastChatSig = sig;
+  } else {
+    window._lastChatSig = null;  // force a fresh render on explicit clicks
+  }
 
   // Customer was clicked but no sessions exist yet — show interest card only
   if (!sid && state.selectedCustomerNoSession) {
@@ -668,6 +686,18 @@ async function refresh() {
     const teamLeaderboard = await teamLbRes.json();
     const deals = await dealsRes.json();
     window._lastSessions = sessions;
+    // Keep the per-session lookup cache fresh with every poll, so a chat panel
+    // that's currently open auto-updates its latest turn without a manual refresh
+    // or re-click. (The global poll returns all active sessions incl. history.)
+    window._sessionCache = window._sessionCache || {};
+    sessions.forEach(s => { window._sessionCache[s.session_id] = s; });
+    // If the user is viewing one customer's conversations, refresh that list too
+    // so its picker + selected session reflect the newest turns.
+    if (state.selectedCustomerForList) {
+      const cid = state.selectedCustomerForList;
+      const live = sessions.filter(s => s.customer_id === cid);
+      if (live.length) state.customerSessions = live;
+    }
     // Build team_id → color map from sessions for use elsewhere
     window._teamColors = window._teamColors || {};
     sessions.forEach(s => {
@@ -905,8 +935,9 @@ async function refresh() {
     }
     state.lastDealCount = deals.length;
 
-    // Re-render chat if selected session updated
-    renderChat();
+    // Re-render chat if selected session updated (fromPoll = skip rebuild when
+    // nothing changed, so an open conversation auto-updates without flicker)
+    renderChat({ fromPoll: true });
 
     // Update budget cache + customers data (for cat appearance & idle quotes)
     try {
