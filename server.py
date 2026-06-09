@@ -499,6 +499,15 @@ async def api_customers(request):
     return JSONResponse(customers)
 
 
+async def api_yesterday(request):
+    """昨日戰績快照（靜態檔，不受今天 Redis 重置影響）。"""
+    from pathlib import Path
+    p = Path(__file__).parent / "yesterday_results.json"
+    if not p.exists():
+        return JSONResponse({"teams": [], "persons": []})
+    return JSONResponse(json.loads(p.read_text(encoding="utf-8")))
+
+
 async def serve_dashboard(request):
     from pathlib import Path
     html_path = Path(__file__).parent / "static" / "index.html"
@@ -535,6 +544,7 @@ web_routes = [
     Route("/api/team_leaderboard", api_team_leaderboard),
     Route("/api/deals", api_deals),
     Route("/api/customers", api_customers),
+    Route("/api/yesterday", api_yesterday),
     Route("/download/codex-arena.zip", serve_starter_zip),
     Route("/download/codex-arena.tar.gz", serve_starter_tar),
     Route("/download/PROJECT_SUMMARY.md", serve_project_summary),

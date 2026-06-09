@@ -1,0 +1,99 @@
+{
+  "teams": [
+    {
+      "team_id": "team_95c0263aa0",
+      "name": "橙蕉隊",
+      "amount": 91200000,
+      "members": 4,
+      "color": "#e67e22"
+    },
+    {
+      "team_id": "team_673f15e635",
+      "name": "天下第一隊",
+      "amount": 76330000,
+      "members": 4,
+      "color": "#c2185b"
+    },
+    {
+      "team_id": "team_0573d2f7e7",
+      "name": "挨踢理專隊",
+      "amount": 65460000,
+      "members": 4,
+      "color": "#16a085"
+    }
+  ],
+  "persons": [
+    {
+      "agent": "Timg",
+      "amount": 52300000,
+      "team": "橙蕉隊",
+      "team_color": "#e67e22"
+    },
+    {
+      "agent": "JEREMY",
+      "amount": 50880000,
+      "team": "天下第一隊",
+      "team_color": "#c2185b"
+    },
+    {
+      "agent": "很有錢",
+      "amount": 26020000,
+      "team": "挨踢理專隊",
+      "team_color": "#16a085"
+    },
+    {
+      "agent": "JP",
+      "amount": 19400000,
+      "team": "橙蕉隊",
+      "team_color": "#e67e22"
+    },
+    {
+      "agent": "Bob",
+      "amount": 17800000,
+      "team": "挨踢理專隊",
+      "team_color": "#16a085"
+    },
+    {
+      "agent": "國泰理專",
+      "amount": 16450000,
+      "team": "天下第一隊",
+      "team_color": "#c2185b"
+    },
+    {
+      "agent": "joyce",
+      "amount": 14800000,
+      "team": "橙蕉隊",
+      "team_color": "#e67e22"
+    },
+    {
+      "agent": "小裕",
+      "amount": 13300000,
+      "team": "挨踢理專隊",
+      "team_color": "#16a085"
+    },
+    {
+      "agent": "史迪芬",
+      "amount": 8340000,
+      "team": "挨踢理專隊",
+      "team_color": "#16a085"
+    },
+    {
+      "agent": "914",
+      "amount": 5000000,
+      "team": "天下第一隊",
+      "team_color": "#c2185b"
+    },
+    {
+      "agent": "James",
+      "amount": 4700000,
+      "team": "橙蕉隊",
+      "team_color": "#e67e22"
+    },
+    {
+      "agent": "JEREMY-B",
+      "amount": 4000000,
+      "team": "天下第一隊",
+      "team_color": "#c2185b"
+    }
+  ]
+}
